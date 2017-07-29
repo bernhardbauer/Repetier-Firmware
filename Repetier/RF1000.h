@@ -386,12 +386,15 @@ The codes are only executed for multiple extruder when changing the extruder. */
 
 /** \brief Which pin enables the heater */
 #define EXT1_HEATER_PIN                     HEATER_1_PIN
-#define EXT1_STEP_PIN                       E0_STEP_PIN  //Digibike Change
-#define EXT1_DIR_PIN                        E0_DIR_PIN  //Digibike Change
+  //Digibike Change 
+#define EXT1_STEP_PIN                       E0_STEP_PIN
+  //Digibike Change 
+#define EXT1_DIR_PIN                        E0_DIR_PIN
 
 /** \brief set to 0/1 for normal/inverse direction */
 #define EXT1_INVERSE                        true
-#define EXT1_ENABLE_PIN                     E0_ENABLE_PIN  //Digibike Change
+  //Digibike Change 
+#define EXT1_ENABLE_PIN                     E0_ENABLE_PIN
 
 /** \brief For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1 */
 #define EXT1_ENABLE_ON                      true
