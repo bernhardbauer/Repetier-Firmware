@@ -43,7 +43,7 @@ To override EEPROM settings with config settings, set EEPROM_MODE 0 */
 // ##########################################################################################
 
 /** \brief Define the type of your device */
-#define MOTHERBOARD                         DEVICE_TYPE_RF1000   //Digibike Change
+//#define MOTHERBOARD                         DEVICE_TYPE_RF1000
 //#define MOTHERBOARD                         DEVICE_TYPE_RF2000
 #define PROTOTYPE_PCB                       0                                                   // 1 = first PCB's / 0 = Final
 
@@ -119,9 +119,6 @@ IMPORTANT: With mode <>0 some changes in Configuration.h are not set any more, a
 /** \brief Allows to change the amount of Z-Offset which is changed by a push of the Z-Up or Z-Down button ONLY within the Mod Menu Page 2 */
 #define Z_OFFSET_BUTTON_STEPS               5
 
-/** \brief Allows to change the Stepper Current to Silent Profile by G-Code (to a second Profile see MOTOR_CURRENT) */
-#define FEATURE_SILENT_MODE                 1                                                   // 1 = on, 0 = off 
-
 /** \brief The Firmwares disalowes movement before you at least: pressed a printers button, set a temperature, homed once 
 If you did not do this, a previous watchdog reset is assumed and fail-drive against some border without homing is blocked thatway. 
 This is a fix for repetier-server not knowing that the printer reset and still sending commands
@@ -132,9 +129,6 @@ XYZ_POSITION_BUTTON_DIRECTION = -1 : This fits to you if you want more intuitivi
 XYZ_POSITION_BUTTON_DIRECTION = 1 : This fits more if you want to stick to standard coordinates direction.
 */
 #define XYZ_POSITION_BUTTON_DIRECTION       1
-
-/** \brief Allows to cause an emergency stop via a 3-times push of the pause button */
-#define FEATURE_EMERGENCY_STOP_VIA_PAUSE    0                                                   // 1 = on, 0 = off
 
 /** \brief Enables/disables the emergency stop in case of too high pressure */
 #define FEATURE_EMERGENCY_STOP_ALL          1                                                   // 1 = on, 0 = off
@@ -181,9 +175,6 @@ to print an object two times at the speed of one. Works only with dual extruder 
 /** \brief A watchdog resets the printer, if a signal is not send within predifined time limits. That way we can be sure that the board
 is always running and is not hung up for some unknown reason. */
 #define FEATURE_WATCHDOG                    1                                                   // 1 = on, 0 = off
-
-/** \brief Enables/disables the menu entry which allows to choose the currently installed hotend type */
-#define FEATURE_CONFIGURABLE_HOTEND_TYPE    1                                                   // 1 = on, 0 = off
 
 /** \brief Defines whether the complete EEPROM shall be reset and filled with the values from Configuration.h whenever the EEPROM becomes corruped or its EEPROM_MODE is different to the value from Configuration.h. */
 #define FEATURE_FULL_EEPROM_RESET           1                                                   // 1 = on, 0 = off
@@ -269,7 +260,7 @@ usage or for seraching for memory induced errors. Switch it off for production, 
 //#define DEBUG_GENERIC
 
 /** \brief This enables code to make M666 drop an ok, so you get problems with communication. It is to test host robustness. */
-#define DEBUG_COM_ERRORS
+//#define DEBUG_COM_ERRORS
 
 /** \brief Adds a menu point in quick settings to write debg informations to the host in case of hangs where the ui still works. */
 //#define DEBUG_PRINT
@@ -341,12 +332,10 @@ usage or for seraching for memory induced errors. Switch it off for production, 
 
 /** \brief Specifies the time interval after the pausing of the print at which the extruder current is reduced */
 #define EXTRUDER_CURRENT_PAUSE_DELAY        5000                                                // [ms] or 0, in order to disable the lowering of the extruder current
+#endif // FEATURE_PAUSE_PRINTING
 
 /** \brief Specifies the extruder current which shall be use after pausing of the print and before continuing of the print */
 #define EXTRUDER_CURRENT_PAUSED             32                                                  // ~0.5A
-
-#endif // FEATURE_PAUSE_PRINTING
-
 
 // ##########################################################################################
 // ##   configuration of the park functionality
@@ -370,7 +359,7 @@ usage or for seraching for memory induced errors. Switch it off for production, 
 
 /** \brief Specifies the pressure at which the emergency pause shall be performed, in [digits] 
 @ ca. +- 15000 the sensors tend to start bending
-With RF1.37r2.Mod the Emergency-Pause-Features limits can be changed in EEPROM but here are the absolute maximum limits:
+With RF1.37r2.Mod the Emergency-Pause-Features limits can be changed in EEPROM and Printers Menu. Here are the absolute maximum limits:
 */
 #define EMERGENCY_PAUSE_DIGITS_MIN          -15000
 #define EMERGENCY_PAUSE_DIGITS_MAX          15000
@@ -390,7 +379,10 @@ With RF1.37r2.Mod the Emergency-Pause-Features limits can be changed in EEPROM b
 
 #if FEATURE_EMERGENCY_STOP_ALL
 
-/** \brief Specifies the pressure at which the emergency z-stop shall be performed, in [digits] */
+/** \brief Specifies the pressure at which the emergency z-stop shall be performed, in [digits] 
+With RF1.37r6.Mod the Emergency-ZStop-Features limits can be changed in EEPROM and Printers Menu. Here are the absolute maximum limits:
+Do not set them to Zero.
+*/
 #define EMERGENCY_STOP_DIGITS_MIN           -14000
 #define EMERGENCY_STOP_DIGITS_MAX           14000
 
@@ -444,13 +436,13 @@ With RF1.37r2.Mod the Emergency-Pause-Features limits can be changed in EEPROM b
     #error this number of micro steps is not supported
 #endif // RF_MICRO_STEPS
 
-#define DRV8711_REGISTER_02                 0x2097                                              // 0010 0000 1001 0111: TOFF = 10010111, PWMMODE = 0
-#define DRV8711_REGISTER_03                 0x31D7                                              // 0011 0001 1101 0111: TBLANK = 11010111, ABT = 1
-#define DRV8711_REGISTER_04                 0x4430                                              // 0100 0100 0011 0000: TDECAY = 00110000, DECMOD = 100
-#define DRV8711_REGISTER_05                 0x583C                                              // 0101 1000 0011 1100: SDTHR = 00111100, SDCNT = 00, VDIV = 10
-#define DRV8711_REGISTER_06                 0x60F0                                              // 0110 0000 1111 0000: OCPTH = 00, OCPDEG = 00, TDRIVEN = 11, TDRIVEP = 11, IDRIVEN = 00, IDRIVEP = 00
-#define DRV8711_REGISTER_07                 0x7000                                              // 0111 0000 0000 0000: OTS = 0, AOCP = 0, BOCP = 0, UVLO = 0, APDF = 0, BPDF = 0, STD = 0, STDLAT = 0
-
+                                                                                                // ADRESS 11..8 7..4 3..0
+#define DRV8711_REGISTER_02                 0x2097                                              // 0010   0000  1001 0111: TOFF = 10010111, PWMMODE = 0
+#define DRV8711_REGISTER_03                 0x31D7                                              // 0011   0001  1101 0111: TBLANK = 11010111, ABT = 1
+#define DRV8711_REGISTER_04                 0x4430                                              // 0100   0100  0011 0000: TDECAY = 00110000, DECMOD = 100
+#define DRV8711_REGISTER_05                 0x583C                                              // 0101   1000  0011 1100: SDTHR = 00111100, SDCNT = 00, VDIV = 10
+#define DRV8711_REGISTER_06                 0x60F0                                              // 0110   0000  1111 0000: OCPTH = 00, OCPDEG = 00, TDRIVEN = 11, TDRIVEP = 11, IDRIVEN = 00, IDRIVEP = 00
+#define DRV8711_REGISTER_07                 0x7000                                              // 0111   0000  0000 0000: OTS = 0, AOCP = 0, BOCP = 0, UVLO = 0, APDF = 0, BPDF = 0, STD = 0, STDLAT = 0
 
 // ##########################################################################################
 // ##   configuration of user-defined thermistor tables
@@ -642,7 +634,7 @@ instead of driving both with a single stepper. The same works for the other axis
 Select the language to use.
 0 = English
 1 = German */
-#define UI_LANGUAGE                         1   //Digibike Change
+#define UI_LANGUAGE                         0
 
 /** \brief Animate switches between menus etc. */
 #define UI_ANIMATION                        false
@@ -900,7 +892,6 @@ If your EXT0_PID_MAX is low, you should prefer the second method. */
 
 /** \brief Temperature range for target temperature to hold in M109 command. 5 means +/-5 degC
 Uncomment define to force the temperature into the range for given watchperiod. */
-//#define TEMP_HYSTERESIS                   5
 #define TEMP_TOLERANCE                      2.0f                                               // [°C]
 
 /** \brief Bits of the ADC converter */
