@@ -69,6 +69,8 @@ FSTRINGVALUE(Com::tTColon,"T:")
 FSTRINGVALUE(Com::tSpaceBColon," B:")
 FSTRINGVALUE(Com::tSpaceAtColon," @:")
 FSTRINGVALUE(Com::tSpaceT," T")
+FSTRINGVALUE(Com::tSpaceChamber," C")
+FSTRINGVALUE(Com::tSpaceCAtColon," C@:")
 FSTRINGVALUE(Com::tSpaceAt," @")
 FSTRINGVALUE(Com::tSpaceBAtColon," B@:")
 FSTRINGVALUE(Com::tSpaceRaw," RAW")
@@ -221,23 +223,25 @@ FSTRINGVALUE(Com::tEPROPSMinDistance,"OPS min. distance for fil. retraction [mm]
 FSTRINGVALUE(Com::tEPROPSRetractionLength,"OPS retraction length [mm]")
 FSTRINGVALUE(Com::tEPROPSRetractionBacklash,"OPS retraction backlash [mm]")
 FSTRINGVALUE(Com::tEPRBedHeatManager,"Bed Heat Manager [0-3]")
-FSTRINGVALUE(Com::tEPRBedPIDDriveMax,"Bed PID drive max")
-FSTRINGVALUE(Com::tEPRBedPIDDriveMin,"Bed PID drive min")
+FSTRINGVALUE(Com::tEPRBedPIDDriveMax,"Bed PID I-drive max")
+FSTRINGVALUE(Com::tEPRBedPIDDriveMin,"Bed PID I-drive min")
 FSTRINGVALUE(Com::tEPRBedPGain,"Bed PID P-gain")
 FSTRINGVALUE(Com::tEPRBedIGain,"Bed PID I-gain")
 FSTRINGVALUE(Com::tEPRBedDGain,"Bed PID D-gain")
-FSTRINGVALUE(Com::tEPRBedPISMaxValue,"Bed PID max value [0-255]")
+FSTRINGVALUE(Com::tEPRBedPISMaxValue,"Bed max power value [0-255]")
 FSTRINGVALUE(Com::tEPRStepsPerMM,"steps per mm")
 FSTRINGVALUE(Com::tEPRMaxFeedrate,"max. feedrate [mm/s]")
 FSTRINGVALUE(Com::tEPRStartFeedrate,"start feedrate [mm/s]")
 FSTRINGVALUE(Com::tEPRAcceleration,"acceleration [mm/s^2]")
 FSTRINGVALUE(Com::tEPRHeatManager,"heat manager [0-3]")
-FSTRINGVALUE(Com::tEPRDriveMax,"PID drive max")
-FSTRINGVALUE(Com::tEPRDriveMin,"PID drive min")
+FSTRINGVALUE(Com::tEPRDriveMax,"PID I-drive max")
+FSTRINGVALUE(Com::tEPRDriveMin,"PID I-drive min")
 FSTRINGVALUE(Com::tEPRPGain,"PID P-gain/dead-time")
 FSTRINGVALUE(Com::tEPRIGain,"PID I-gain")
 FSTRINGVALUE(Com::tEPRDGain,"PID D-gain")
-FSTRINGVALUE(Com::tEPRPIDMaxValue,"PID max value [0-255]")
+FSTRINGVALUE(Com::tEPRPIDMaxValue,"max power value [0-255]")
+FSTRINGVALUE(Com::tEPRBedsensorType,"Bed Temp. SensorType [0=Cfg,3=Conrad,..]")
+FSTRINGVALUE(Com::tEPRsensorType,"Temp. SensorType [0=Cfg,3=V2,8=E3D,..]")
 FSTRINGVALUE(Com::tEPRXOffset,"X-offset [mm]")
 FSTRINGVALUE(Com::tEPRYOffset,"Y-offset [mm]")
 FSTRINGVALUE(Com::tEPRZOffsetmm,"Z-offset [mm]")
@@ -251,9 +255,8 @@ FSTRINGVALUE(Com::tEPRBeeperMode,"beeper mode [0=off]")
 FSTRINGVALUE(Com::tEPRCaseLightsMode,"case lights mode [0=off, 1=on]")
 FSTRINGVALUE(Com::tEPROperatingMode,"operating mode [1=print, 2=mill]")
 FSTRINGVALUE(Com::tEPRZEndstopType,"Z endstop type [1=single, 2=circuit]")
-FSTRINGVALUE(Com::tEPRHotendType,"Hotend type [2=V1,3=V2,4=V2 dual]")
 FSTRINGVALUE(Com::tEPRMillerType,"Miller type [tracks]")
-FSTRINGVALUE(Com::tEPRRGBLightMode,"RGB Light mode [0=off, 1=white, 2=color, 3=manual]")
+FSTRINGVALUE(Com::tEPRRGBLightMode,"RGB Light mode [0..3 off/ws/aut/man]")
 FSTRINGVALUE(Com::tEPRFET1Mode,"FET1 mode [0=off, 1=on]")
 FSTRINGVALUE(Com::tEPRFET2Mode,"FET2 mode [0=off, 1=on]")
 FSTRINGVALUE(Com::tEPRFET3Mode,"FET3 mode [0=off, 1=on]")
@@ -267,9 +270,22 @@ FSTRINGVALUE(Com::tEPRPrinterEPR_RF_MOD_SENSEOFFSET_DIGITS,"SenseOffset Digits L
 #endif //FEATURE_SENSIBLE_PRESSURE
 
 #if FEATURE_EMERGENCY_PAUSE
-FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMin,"EmergencyPauseDigitsMin 0=off [1700/kg]")
-FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax,"EmergencyPauseDigitsMax 0=off [1700/kg]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMin,"EmergencyPauseDigitsMin (min+max 0=off) [1700/kg]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyPauseDigitsMax,"EmergencyPauseDigitsMax (min+max 0=off) [1700/kg]")
 #endif //FEATURE_EMERGENCY_PAUSE
+
+#if FEATURE_EMERGENCY_STOP_ALL
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMin,"ZEmergencyStopAllMin [1700/kg]")
+FSTRINGVALUE(Com::tEPRPrinterEPR_RF_EmergencyStopAllMax,"ZEmergencyStopAllMax [1700/kg]")
+#endif //FEATURE_EMERGENCY_STOP_ALL
+
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_X,"Stepper X Current [2A/126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_Y,"Stepper Y Current [2A/126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_Z,"Stepper Z Current [2A/126]")
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_E0,"Stepper E0 Current [2A/126]")
+#if NUM_EXTRUDER > 1
+FSTRINGVALUE(Com::tEPRPrinter_STEPPER_E1,"Stepper E1 Current [2A/126]")
+#endif //NUM_EXTRUDER > 1
 
 #endif // EEPROM_MODE
 

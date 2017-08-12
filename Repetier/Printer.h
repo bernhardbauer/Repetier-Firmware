@@ -46,22 +46,22 @@
 class Printer
 {
 public:
-#if defined(USE_ADVANCE)
+#if USE_ADVANCE
     static volatile int     extruderStepsNeeded;                // This many extruder steps are still needed, <0 = reverse steps needed.
-    static uint8_t          minExtruderSpeed;                   // Timer delay for start extruder speed
     static uint8_t          maxExtruderSpeed;                   // Timer delay for end extruder speed
     static volatile int     advanceStepsSet;
 
 #ifdef ENABLE_QUADRATIC_ADVANCE
     static long             advanceExecuted;                    // Executed advance steps
 #endif // ENABLE_QUADRATIC_ADVANCE
-#endif // defined(USE_ADVANCE)
+#endif // USE_ADVANCE
 
     static uint8_t          menuMode;
     static float            axisStepsPerMM[];
     static float            invAxisStepsPerMM[];
     static float            maxFeedrate[];
     static float            homingFeedrate[];
+    static uint32_t         maxInterval; // slowest allowed interval
     static float            maxAccelerationMMPerSquareSecond[];
     static float            maxTravelAccelerationMMPerSquareSecond[];
     static unsigned long    maxPrintAccelerationStepsPerSquareSecond[];
@@ -160,10 +160,6 @@ public:
     static char             endstopZMaxHit;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
-#if FEATURE_CONFIGURABLE_HOTEND_TYPE
-    static char             HotendType;
-#endif // FEATURE_CONFIGURABLE_HOTEND_TYPE
-
 #if FEATURE_CONFIGURABLE_MILLER_TYPE
     static char             MillerType;
 #endif // FEATURE_CONFIGURABLE_MILLER_TYPE
@@ -212,6 +208,8 @@ public:
 #if FEATURE_UNLOCK_MOVEMENT
     static unsigned char    g_unlock_movement;
 #endif //FEATURE_UNLOCK_MOVEMENT
+
+    static uint8_t   motorCurrent[5];
 
 #if FEATURE_ZERO_DIGITS
     static short            g_pressure_offset;
@@ -703,7 +701,7 @@ public:
 
             // in case there is only one z-endstop and we are in operating mode "mill", the z-min endstop is not connected and can not be detected
             return false;
-#else
+#else // FEATURE_MILLING_MODE
             // in case there is only one z-endstop and we are in operating mode "print", the z-min endstop must be connected
             return READ(Z_MIN_PIN) != ENDSTOP_Z_MIN_INVERTING;
 #endif // FEATURE_MILLING_MODE
@@ -759,11 +757,11 @@ public:
         ZEndstopUnknown = 0;
         return false;
 
-#else
+#else // FEATURE_CONFIGURABLE_Z_ENDSTOPS
         return READ(Z_MIN_PIN) != ENDSTOP_Z_MIN_INVERTING;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
-#else
+#else //Z_MIN_PIN>-1 && MIN_HARDWARE_ENDSTOP_Z
         return false;
 #endif // Z_MIN_PIN>-1 && MIN_HARDWARE_ENDSTOP_Z
     } // isZMinEndstopHit

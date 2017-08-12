@@ -86,7 +86,7 @@ have problems with other modules using the eeprom */
 #define EPR_Y_HOMING_FEEDRATE_MILL      1008
 #define EPR_Z_HOMING_FEEDRATE_MILL      1012
 #define EPR_RF_Z_ENDSTOP_TYPE           1016
-#define EPR_RF_HOTEND_TYPE              1017
+#define EPR_RF_HOTEND_TYPE              1017 //depreached 30 07 2017 Nibbels : Die Funktion war nur für RF1000, nur Single, in der Falschen Klasse, wenn nötig, dann in Class Extruder einbauen. Hat beim RF2000 keiner vermisst: Ersatz ist EPR_EXTRUDER_SENSOR_TYPE
 #define EPR_RF_MILLER_TYPE              1018
 #define EPR_RF_RGB_LIGHT_MODE           1019
 #define EPR_RF_FET1_MODE                1020
@@ -126,6 +126,13 @@ have problems with other modules using the eeprom */
 #define EPR_RF_EMERGENCYPAUSEDIGITSMIN    1910 //+1911+1912+1913 g_nEmergencyPauseDigitsMin [4byte long]
 #define EPR_RF_EMERGENCYPAUSEDIGITSMAX    1914 //+1915+1916+1917 g_nEmergencyPauseDigitsMax [4byte long]
 
+#define EPR_RF_EMERGENCYZSTOPDIGITSMIN    1918 //+1919 g_nZEmergencyStopAllMin [2byte short]
+#define EPR_RF_EMERGENCYZSTOPDIGITSMAX    1920 //+1921 g_nZEmergencyStopAllMax [2byte short]
+
+#define EPR_RF_HEATED_BED_SENSOR_TYPE     1922 //[1byte]
+
+#define EPR_RF_MOTOR_CURRENT              1923 //1924+1925+1926+1927 [5byte für 5 Motorstrombytes]
+
 //Nibbels: Computechecksum geht bis 2047
 
 #define EEPROM_EXTRUDER_OFFSET          200
@@ -157,6 +164,7 @@ have problems with other modules using the eeprom */
 #define EPR_EXTRUDER_WAIT_RETRACT_TEMP  50
 #define EPR_EXTRUDER_WAIT_RETRACT_UNITS 52
 #define EPR_EXTRUDER_COOLER_SPEED       54 //byte
+#define EPR_EXTRUDER_SENSOR_TYPE        94 //uint8 
 #define EPR_EXTRUDER_Z_OFFSET           95 //int32_t -> +96+97+98
 
 class EEPROM

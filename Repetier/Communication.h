@@ -98,6 +98,8 @@ public:
     FSTRINGVAR(tMS1MS2Pins)
     FSTRINGVAR(tSetOutputSpace)
     FSTRINGVAR(tSpaceToSpace)
+    FSTRINGVAR(tSpaceChamber)
+    FSTRINGVAR(tSpaceCAtColon)
     FSTRINGVAR(tHSpace)
     FSTRINGVAR(tLSpace)
     FSTRINGVAR(tXMinColon)
@@ -239,6 +241,8 @@ public:
     FSTRINGVAR(tEPRIGain)
     FSTRINGVAR(tEPRDGain)
     FSTRINGVAR(tEPRPIDMaxValue)
+    FSTRINGVAR(tEPRBedsensorType)
+    FSTRINGVAR(tEPRsensorType)
     FSTRINGVAR(tEPRXOffset)
     FSTRINGVAR(tEPRYOffset)
     FSTRINGVAR(tEPRZOffset)
@@ -254,7 +258,6 @@ public:
     FSTRINGVAR(tEPRCaseLightsMode)
     FSTRINGVAR(tEPROperatingMode)
     FSTRINGVAR(tEPRZEndstopType)
-    FSTRINGVAR(tEPRHotendType)
     FSTRINGVAR(tEPRMillerType)
     FSTRINGVAR(tEPRRGBLightMode)
     FSTRINGVAR(tEPRFET1Mode)
@@ -275,6 +278,19 @@ public:
     FSTRINGVAR(tEPRPrinterEPR_RF_EmergencyPauseDigitsMin)
     FSTRINGVAR(tEPRPrinterEPR_RF_EmergencyPauseDigitsMax)
 #endif //FEATURE_EMERGENCY_PAUSE
+
+#if FEATURE_EMERGENCY_STOP_ALL
+    FSTRINGVAR(tEPRPrinterEPR_RF_EmergencyStopAllMin)
+    FSTRINGVAR(tEPRPrinterEPR_RF_EmergencyStopAllMax)
+#endif //FEATURE_EMERGENCY_STOP_ALL
+
+    FSTRINGVAR(tEPRPrinter_STEPPER_X)
+    FSTRINGVAR(tEPRPrinter_STEPPER_Y)
+    FSTRINGVAR(tEPRPrinter_STEPPER_Z)
+    FSTRINGVAR(tEPRPrinter_STEPPER_E0)
+#if NUM_EXTRUDER > 1
+    FSTRINGVAR(tEPRPrinter_STEPPER_E1)
+#endif //NUM_EXTRUDER > 1
 
 #endif // EEPROM_MODE==0
 

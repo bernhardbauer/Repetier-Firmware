@@ -19,11 +19,10 @@
 #include "Repetier.h"
 #include <Wire.h>
 
-#if defined(USE_ADVANCE)
-uint8_t         Printer::minExtruderSpeed;                              ///< Timer delay for start extruder speed
+#if USE_ADVANCE
 uint8_t         Printer::maxExtruderSpeed;                              ///< Timer delay for end extruder speed
 volatile int    Printer::extruderStepsNeeded;                           ///< This many extruder steps are still needed, <0 = reverse steps needed.
-#endif // defined(USE_ADVANCE)
+#endif // USE_ADVANCE
 
 uint8_t         Printer::unitIsInches = 0;                              ///< 0 = Units are mm, 1 = units are inches.
 
@@ -41,6 +40,7 @@ float           Printer::maxTravelAccelerationMMPerSquareSecond[4] = {MAX_TRAVEL
 unsigned long   Printer::maxPrintAccelerationStepsPerSquareSecond[4];
 /** Acceleration in steps/s^2 in movement mode.*/
 unsigned long   Printer::maxTravelAccelerationStepsPerSquareSecond[4];
+uint32_t        Printer::maxInterval;
 #endif // RAMP_ACCELERATION
 
 uint8_t         Printer::relativeCoordinateMode = false;                ///< Determines absolute (false) or relative Coordinates (true).
@@ -68,7 +68,7 @@ unsigned long   Printer::interval;                                      ///< Las
 unsigned long   Printer::timer;                                         ///< used for acceleration/deceleration timing
 unsigned long   Printer::stepNumber;                                    ///< Step number in current move.
 
-#ifdef USE_ADVANCE
+#if USE_ADVANCE
 #ifdef ENABLE_QUADRATIC_ADVANCE
 long            Printer::advanceExecuted;                               ///< Executed advance steps
 #endif // ENABLE_QUADRATIC_ADVANCE
@@ -158,10 +158,6 @@ char            Printer::endstopZMinHit;
 char            Printer::endstopZMaxHit;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
-#if FEATURE_CONFIGURABLE_HOTEND_TYPE
-char            Printer::HotendType;
-#endif // FEATURE_CONFIGURABLE_HOTEND_TYPE
-
 #if FEATURE_CONFIGURABLE_MILLER_TYPE
 char            Printer::MillerType;
 #endif // FEATURE_CONFIGURABLE_MILLER_TYPE
@@ -212,6 +208,8 @@ unsigned char   Printer::wrongType;
 unsigned char   Printer::g_unlock_movement = 0;
 #endif //FEATURE_UNLOCK_MOVEMENT
 
+uint8_t         Printer::motorCurrent[5] = {0,0,0,0,0};
+
 #if FEATURE_ZERO_DIGITS
 short   Printer::g_pressure_offset = 0;
 #endif // FEATURE_ZERO_DIGITS
@@ -252,7 +250,7 @@ void Printer::constrainQueueDestinationCoords()
 void Printer::constrainDirectDestinationCoords()
 {
     if(isNoDestinationCheck()) return;
-
+    if(g_pauseStatus) return; //pausebewegung rechnet mit current queue
 #if FEATURE_EXTENDED_BUTTONS || FEATURE_PAUSE_PRINTING
 #if max_software_endstop_x == true
     if (queuePositionTargetSteps[X_AXIS] + directPositionTargetSteps[X_AXIS] > Printer::maxSteps[X_AXIS]) Printer::directPositionTargetSteps[X_AXIS] = Printer::maxSteps[X_AXIS] - queuePositionTargetSteps[X_AXIS];
@@ -266,12 +264,6 @@ void Printer::constrainDirectDestinationCoords()
     if (queuePositionTargetSteps[Z_AXIS] + directPositionTargetSteps[Z_AXIS] > Printer::maxSteps[Z_AXIS]) Printer::directPositionTargetSteps[Z_AXIS] = Printer::maxSteps[Z_AXIS] - queuePositionTargetSteps[Z_AXIS];
 #endif // max_software_endstop_z == true
 #endif //FEATURE_EXTENDED_BUTTONS || FEATURE_PAUSE_PRINTING
-/*
-    Com::printF(PSTR("constrainDirectDestinationCoords(): "));
-    Com::printF(PSTR("x="),Printer::directPositionTargetSteps[X_AXIS]);
-    Com::printF(PSTR(",y="),Printer::directPositionTargetSteps[Y_AXIS]);
-    Com::printFLN(PSTR(", z="),Printer::directPositionTargetSteps[Z_AXIS]);
-*/
 } // constrainDirectDestinationCoords
 
 
@@ -326,6 +318,13 @@ void Printer::updateDerivedParameter()
     minimumSpeed = accel*sqrt(2.0f/(axisStepsPerMM[X_AXIS]*accel));
     accel = RMath::max(maxAccelerationMMPerSquareSecond[Z_AXIS],maxTravelAccelerationMMPerSquareSecond[Z_AXIS]);
     minimumZSpeed = accel*sqrt(2.0f/(axisStepsPerMM[Z_AXIS]*accel));
+
+    maxInterval = F_CPU / (minimumSpeed * axisStepsPerMM[X_AXIS]);
+    uint32_t tmp = F_CPU / (minimumSpeed * axisStepsPerMM[Y_AXIS]);
+    if(tmp < maxInterval) maxInterval = tmp;
+    tmp = F_CPU / (minimumZSpeed * axisStepsPerMM[Z_AXIS]);
+    if(tmp < maxInterval) maxInterval = tmp;
+
     Printer::updateAdvanceFlags();
 
 } // updateDerivedParameter
@@ -379,18 +378,16 @@ void Printer::updateAdvanceFlags()
 {
     Printer::setAdvanceActivated(false);
 
-#if defined(USE_ADVANCE)
-    for(uint8_t i=0; i<NUM_EXTRUDER; i++)
-    {
-        if(extruder[i].advanceL!=0)
-        {
+#if USE_ADVANCE
+    for(uint8_t i = 0; i < NUM_EXTRUDER; i++) {
+        if(extruder[i].advanceL!=0) {
             Printer::setAdvanceActivated(true);
         }
 #ifdef ENABLE_QUADRATIC_ADVANCE
-        if(extruder[i].advanceK!=0) Printer::setAdvanceActivated(true);
+        if(extruder[i].advanceK != 0) Printer::setAdvanceActivated(true);
 #endif // ENABLE_QUADRATIC_ADVANCE
     }
-#endif // defined(USE_ADVANCE)
+#endif // USE_ADVANCE
 
 } // updateAdvanceFlags
 
@@ -546,7 +543,6 @@ uint8_t Printer::setDestinationStepsFromGCode(GCode *com)
     if(com->hasZ())
     {
         queuePositionTargetSteps[Z_AXIS] = zSteps;
-//      Com::printFLN( PSTR( "qPTS=" ), queuePositionTargetSteps[Z_AXIS] );
     }
     else
     {
@@ -977,11 +973,10 @@ void Printer::setup()
     extrudeMultiply = 100;
     queuePositionCommandMM[X_AXIS] = queuePositionCommandMM[Y_AXIS] = queuePositionCommandMM[Z_AXIS] = 0;
 
-#ifdef USE_ADVANCE
+#if USE_ADVANCE
 #ifdef ENABLE_QUADRATIC_ADVANCE
     advanceExecuted = 0;
 #endif // ENABLE_QUADRATIC_ADVANCE
-
     advanceStepsSet = 0;
 #endif // USE_ADVANCE
 
@@ -1090,6 +1085,7 @@ void Printer::setup()
     endstopZMaxHit        = ENDSTOP_NOT_HIT;
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
+
 #if STEPPER_ON_DELAY
     enabledStepper[X_AXIS] = 0;
     enabledStepper[Y_AXIS] = 0;
@@ -1135,9 +1131,9 @@ void Printer::setup()
     RGBLightModeForceWhite = 0;
 #endif // FEATURE_RGB_LIGHT_EFFECTS
 
-#if defined(USE_ADVANCE)
+#if USE_ADVANCE
     extruderStepsNeeded = 0;
-#endif // defined(USE_ADVANCE)
+#endif // USE_ADVANCE
 
     EEPROM::initBaudrate();
     HAL::serialSetBaudrate(baudrate);
@@ -1672,7 +1668,10 @@ void Printer::homeAxis(bool xaxis,bool yaxis,bool zaxis) // home non-delta print
 
 bool Printer::allowQueueMove( void )
 {
-    if( (g_pauseStatus != PAUSE_STATUS_NONE && g_pauseStatus != PAUSE_STATUS_WAIT_FOR_QUEUE_MOVE) && !PrintLine::cur )
+    if( g_pauseStatus == PAUSE_STATUS_PAUSED ) return false;
+
+    if( !( (PAUSE_STATUS_GOTO_PAUSE1 <= g_pauseStatus && g_pauseStatus <= PAUSE_STATUS_PREPARE_CONTINUE1) || g_pauseStatus == PAUSE_STATUS_NONE) 
+        && !PrintLine::cur )
     {
         // do not allow to process new moves from the queue while the printing is paused
         return false;
@@ -1710,6 +1709,12 @@ bool Printer::allowDirectSteps( void )
     if( PrintLine::direct.stepsRemaining )
     {
         // the currently known direct movements must be processed as move
+        return false;
+    }
+
+    if( endZCompensationStep )
+    {
+        // while zcompensation is working it has higher priority
         return false;
     }
 
@@ -1793,19 +1798,6 @@ void Printer::performZCompensation( void )
         return;
     }
 
-/** 20.07.2017 Nibbels
-Hier wird eine Stepper-Direction gesetzt. Dann macht der Drucker irgendwas anderes und bei endZCompensationStep wird angenommen, die Richtung wäre noch so wie bisher. Kann das stimmen?
-
-warum ist endZCompensationStep benötigt: weil man vermutlich davon ausgeht, dass Z meist nicht verwendet wird und man das durch ->isZMove() ausgeschlossen hat. So muss der Step nicht warten.
-Aber eigentlich dauert der Stepp quasi keine Zeit!
-Das wurde in der 1.10 noch anders gemacht.
-
-Kann man nicht diese Steps beim laufenden Prozess dazurechnen, wenn der gerade kein Z bewegt??
-so nach: IF !moveZ then moveZ = 1 && compensatedPositionCurrentStepsZ += (-)1 ??
-Bzw man könnte auch direkt ausgleichen, wenn der eine ins plus will, der andere ins minus, dann verrechnen 1 gegen 1.
---> da ist die stepper-direction schon fest.
-*/
-
     if( endZCompensationStep ) //zuerst beenden, bevor irgendwas neues an Z manipuliert werden darf. 20.07.2017 Nibbels
     {
 #if STEPPER_HIGH_DELAY>0
@@ -1813,35 +1805,19 @@ Bzw man könnte auch direkt ausgleichen, wenn der eine ins plus will, der andere
 #endif // STEPPER_HIGH_DELAY>0
 
         endZStep();
-                
         compensatedPositionCurrentStepsZ += endZCompensationStep;
-
-        if( compensatedPositionCurrentStepsZ == compensatedPositionTargetStepsZ )
-        {
-            stepperDirection[Z_AXIS] = 0;
-
-#if DEBUG_HEAT_BED_Z_COMPENSATION || DEBUG_WORK_PART_Z_COMPENSATION
-            long    nDelay = micros() - g_nZCompensationUpdateTime;
-
-            if( nDelay > g_nZCompensationDelayMax )     g_nZCompensationDelayMax = nDelay;
-#endif // DEBUG_HEAT_BED_Z_COMPENSATION || DEBUG_WORK_PART_Z_COMPENSATION
-        }
-
         endZCompensationStep = 0;
 
-#if STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY>0
         //Insert little wait if next Z step might follow now.
-        if( PrintLine::cur ) if( PrintLine::cur->isZMove() )
-            {
-                HAL::delayMicroseconds(STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY);
-                return;
-            }
-        if( PrintLine::direct.isZMove() )
-            {
-                HAL::delayMicroseconds(STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY);
-                return;
-            }
+        if( isDirectOrQueueOrCompZMove() )
+        {
+#if STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY>0
+            HAL::delayMicroseconds(STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY);
 #endif // STEPPER_HIGH_DELAY+DOUBLE_STEP_DELAY>0
+            return;
+        }
+        else if( compensatedPositionCurrentStepsZ == compensatedPositionTargetStepsZ /* && not isDirectOrQueueOrCompZMove() */ ) stepperDirection[Z_AXIS] = 0; //-> Ich glaube, das brauchen wir hier nicht, wenn der DirectMove sauber abschließt. Hier wird nur reingeschummelt wenn ein DirectMove läuft.
+
         return;
     }
 
@@ -1850,16 +1826,17 @@ Bzw man könnte auch direkt ausgleichen, wenn der eine ins plus will, der andere
         if( PrintLine::cur->isZMove() )
         {
             // do not peform any compensation while there is a "real" move into z-direction
-            return;
+            if( PrintLine::cur->stepsRemaining ) return;
+            else PrintLine::cur->setZMoveFinished();
         }
     }
-/* 17_06_12 könnte das folgende hier fehlen? siehe bug mit dem verzählen. ... test irgendwann später mal.*/
+
     if( PrintLine::direct.isZMove() )
     {
         // do not peform any compensation while there is a direct-move into z-direction
-        return;
+        if( PrintLine::direct.stepsRemaining ) return;
+        else PrintLine::direct.setZMoveFinished();
     }
-
 
     if( compensatedPositionCurrentStepsZ < compensatedPositionTargetStepsZ )
     {

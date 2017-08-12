@@ -157,6 +157,26 @@
 
 #define UI_ACTION_EMERGENCY_PAUSE_MIN       1670
 #define UI_ACTION_EMERGENCY_PAUSE_MAX       1671
+#define UI_ACTION_EMERGENCY_ZSTOP_MIN       1672
+#define UI_ACTION_EMERGENCY_ZSTOP_MAX       1673
+
+#define UI_ACTION_CHOOSE_CLASSICPID         1674
+#define UI_ACTION_CHOOSE_LESSERINTEGRAL     1675
+#define UI_ACTION_CHOOSE_SOME               1676
+#define UI_ACTION_CHOOSE_NO                 1677
+#define UI_ACTION_CHOOSE_DMIN               1678
+#define UI_ACTION_CHOOSE_DMAX               1679
+#define UI_ACTION_CHOOSE_PIDMAX             1680
+#define UI_ACTION_CHOOSE_SENSOR             1681
+#define UI_ACTION_CHOOSE_MOTOR_X            1682
+#define UI_ACTION_CHOOSE_MOTOR_Y            1683
+#define UI_ACTION_CHOOSE_MOTOR_Z            1684
+#define UI_ACTION_CHOOSE_MOTOR_E0           1685
+#define UI_ACTION_CHOOSE_MOTOR_E1           1686
+#define UI_ACTION_EXTR_STEPS_E0             1687
+#define UI_ACTION_EXTR_STEPS_E1             1688
+#define UI_ACTION_ADVANCE_L_E0              1689
+#define UI_ACTION_ADVANCE_L_E1              1690
 
 #define UI_ACTION_FET1_OUTPUT               2001
 #define UI_ACTION_FET2_OUTPUT               2002
@@ -218,6 +238,11 @@ typedef struct
 
 
 extern const int8_t encoder_table[16] PROGMEM;
+
+#if UI_PRINT_AUTORETURN_TO_MENU_AFTER || UI_MILL_AUTORETURN_TO_MENU_AFTER
+extern millis_t g_nAutoReturnTime;
+extern bool     g_nAutoReturnMessage;
+#endif // UI_PRINT_AUTORETURN_TO_MENU_AFTER || UI_MILL_AUTORETURN_TO_MENU_AFTER
 
 extern  char    g_nYesNo;
 extern volatile char    g_nContinueButtonPressed;

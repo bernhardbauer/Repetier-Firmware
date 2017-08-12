@@ -526,7 +526,6 @@ extern const char   ui_text_delete_file[]           PROGMEM;
 extern const char   ui_text_z_compensation[]        PROGMEM;
 extern const char   ui_text_change_mode[]           PROGMEM;
 extern const char   ui_text_change_z_type[]         PROGMEM;
-extern const char   ui_text_change_hotend_type[]    PROGMEM;
 extern const char   ui_text_change_miller_type[]    PROGMEM;
 extern const char   ui_text_x_axis[]                PROGMEM;
 extern const char   ui_text_y_axis[]                PROGMEM;
@@ -586,10 +585,6 @@ extern  unsigned char   g_ZOS_Auto_Matrix_Leveling_State;
 extern  volatile unsigned char  g_ZMatrixChangedInRam;
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
 
-#if FEATURE_SILENT_MODE
-extern  char            g_nSilentMode;
-#endif // FEATURE_SILENT_MODE
-
 #if FEATURE_WORK_PART_Z_COMPENSATION
 extern  char            g_nWorkPartScanStatus;
 extern  char            g_nWorkPartScanMode;        // 0 = do not home z-axis, 1 = home z-axis
@@ -644,9 +639,14 @@ extern  volatile char   g_pauseBeepDone;
 #endif // FEATURE_PAUSE_PRINTING
 
 #if FEATURE_EMERGENCY_PAUSE
-extern long             g_nEmergencyPauseDigitsMin;
-extern long             g_nEmergencyPauseDigitsMax;
+extern long             g_nEmergencyPauseDigitsMin;  //short reicht eigentlich
+extern long             g_nEmergencyPauseDigitsMax;  //short reicht eigentlich
 #endif // FEATURE_EMERGENCY_PAUSE
+
+#if FEATURE_EMERGENCY_STOP_ALL
+extern short             g_nZEmergencyStopAllMin;
+extern short             g_nZEmergencyStopAllMax;
+#endif //FEATURE_EMERGENCY_STOP_ALL
 
 #if FEATURE_SENSIBLE_PRESSURE
 /* brief: This is for correcting too close Z at first layer, see FEATURE_SENSIBLE_PRESSURE // Idee Wessix, coded by Nibbels  */
@@ -878,13 +878,17 @@ extern void outputObject( void );
 extern void parkPrinter( void );
 #endif // FEATURE_PARK
 
+#if FEATURE_PAUSE_PRINTING
+
+extern bool processingDirectMove();
+extern void checkPauseStatus_fromTask();
+extern void waitforPauseStatus_fromButton();
 // pausePrint()
 extern void pausePrint( void );
 
 // continuePrint()
 extern void continuePrint( void );
 
-#if FEATURE_PAUSE_PRINTING
 // determinePausePosition()
 extern void determinePausePosition( void );
 
@@ -899,7 +903,7 @@ extern void waitUntilContinue( void );
 #endif // FEATURE_PAUSE_PRINTING
 
 // setExtruderCurrent()
-extern void setExtruderCurrent( unsigned short level );
+extern void setExtruderCurrent( uint8_t nr, uint8_t current );
 
 // processCommand()
 extern void processCommand( GCode* pCommand );
@@ -925,10 +929,11 @@ extern void nextPreviousZAction( int8_t increment );
 
 #if STEPPER_CURRENT_CONTROL==CURRENT_CONTROL_DRV8711
 // setMotorCurrent()
-extern void setMotorCurrent( unsigned char driver, unsigned short level );
+extern void setMotorCurrent( unsigned char driver, uint8_t level );
 
 // motorCurrentControlInit()
 extern void motorCurrentControlInit( void );
+extern unsigned short readMotorStatus( unsigned char driver );
 #endif // CURRENT_CONTROL_DRV8711
 
 
