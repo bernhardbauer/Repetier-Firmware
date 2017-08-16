@@ -20,8 +20,8 @@
 #define CONSTANTS_H
 
 
-#define REPETIER_VERSION                    "RF.01.37s9.Mod"
-#define UI_PRINTER_COMPANY                  "DGLASS RF1k Edt."   //Digibike Change
+#define REPETIER_VERSION                    "RF.01.37t2.Mod"
+#define UI_PRINTER_COMPANY                  "Conrad Community"
 #define UI_VERSION_STRING                   "V " REPETIER_VERSION
 
 

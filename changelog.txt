@@ -1,8 +1,18 @@
-V RF.01.37s9.DGMod (2017-08-10)
-- Pushing digibike parameters to this branch.
+TODO: Z-Lift-Bug seems to be still present! Avoid Z-Lift.
+TODO: Test Z-Homing and Pause-Pause-Continue in Milling-Mode
+TODO: Test driving free without FEATURE drive-free in Milling-Mode @RF1000/RF2000
+TODO: Testing, testing ..
 
-V RF.01.37s9.Mod (2017-08-10)
-- Z-Max Fix
+V RF.01.37t2.Mod (2017-08-16)
+- Prevent continue while pause position is not reached. This might have resulted in neverending pause.
+- use of repetiers better INCREMENT_MIN_MAX definition. He sais: "// this version not have single byte variable rollover bug"
+
+V RF.01.37t.Mod (2017-08-15)
+- Pause now can lower Extruder Temps. Continue recovers temps and pushes re-retract afterwards.
+
+V RF.01.37s9.Mod (2017-08-12)
+- Z-Max Fix / Z-Override-Fix
+- Testfunction for stepper drivers stall detection -> I guess this hardware feature is not usefull att all.
 
 V RF.01.37s7.Mod (2017-08-10)
 - Optional Temperature Sensor on RF2000 now reports the Temperatures as Heated-Chamber Sensor. https://forum.repetier.com/discussion/4102/heated-chamber -> Letter C in printTemperatures. This is fun, because Repetier-Server 0.86.2 now has an extra temperatures diagram for this.
