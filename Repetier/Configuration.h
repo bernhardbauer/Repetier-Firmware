@@ -43,7 +43,7 @@ To override EEPROM settings with config settings, set EEPROM_MODE 0 */
 // ##########################################################################################
 
 /** \brief Define the type of your device */
-//#define MOTHERBOARD                         DEVICE_TYPE_RF1000
+#define MOTHERBOARD                         DEVICE_TYPE_RF1000   //Digibike Change
 //#define MOTHERBOARD                         DEVICE_TYPE_RF2000
 #define PROTOTYPE_PCB                       0                                                   // 1 = first PCB's / 0 = Final
 
@@ -605,7 +605,7 @@ instead of driving both with a single stepper. The same works for the other axis
 Select the language to use.
 0 = English
 1 = German */
-#define UI_LANGUAGE                         0
+#define UI_LANGUAGE                         1   //Digibike Change
 
 /** \brief Animate switches between menus etc. */
 #define UI_ANIMATION                        false

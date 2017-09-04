@@ -53,7 +53,7 @@
 #endif // FEATURE_MILLING_MODE
 
 /** \brief Number of extruders */
-#define NUM_EXTRUDER                        1
+#define NUM_EXTRUDER                        2   //Digibike Change
 
 /** \brief Allows to use the 230V output */
 #define FEATURE_230V_OUTPUT                 0                                                   // the RF1000 does not support the 230 V output
@@ -116,7 +116,7 @@ For delta robot Z_MAX_LENGTH is the maximum travel of the towers and should be s
 and the platform when the printer is at its home position.
 If EEPROM is enabled these values will be overidden with the values in the EEPROM */
 #if NUM_EXTRUDER == 2
-#define X_MAX_LENGTH_PRINT                  (long)180
+#define X_MAX_LENGTH_PRINT                  (long)200   //Digibike Change
 #else
 #define X_MAX_LENGTH_PRINT                  (long)245
 #endif // NUM_EXTRUDER == 2
@@ -219,7 +219,7 @@ Overridden if EEPROM activated.*/
 #define EXT0_Z_OFFSET                       0 //to support Nozzle-Tip-Down-Hotends
 
 /** \brief for skeinforge 40 and later, steps to pull the plasic 1 mm inside the extruder, not out.  Overridden if EEPROM activated. */
-#define EXT0_STEPS_PER_MM                   (8.75 * RF_MICRO_STEPS)
+#define EXT0_STEPS_PER_MM                   (300 / 91.17 * 8.75 * RF_MICRO_STEPS)   //Digibike Change
 
 /** \brief What type of sensor is used?
 NTC-Thermistors
@@ -247,7 +247,7 @@ PTC-Thermistors
 52: USER_THERMISTORTABLE2 als PTC
 60: HEATER_USES_AD8495 (Delivers 5mV/degC)
 100: AD595 */
-#define EXT0_TEMPSENSOR_TYPE                3
+#define EXT0_TEMPSENSOR_TYPE                8   //Digibike Change
 
 /** \brief Analog input pin for reading temperatures or pin enabling SS for MAX6675 */
 #define EXT0_TEMPSENSOR_PIN                 TEMP_0_PIN
@@ -308,15 +308,15 @@ Overridden if EEPROM activated. */
 #if EXT0_HOTEND_TYPE == HOTEND_TYPE_V2
 
 /** \brief The maximum value, I-gain can contribute to the output. Overridden if EEPROM activated. */
-#define EXT0_PID_INTEGRAL_DRIVE_MAX         HT3_PID_INTEGRAL_DRIVE_MIN
+#define EXT0_PID_INTEGRAL_DRIVE_MAX         130   //Digibike Change for new pid control
 /** \brief lower value for integral part. Overridden if EEPROM activated. */
-#define EXT0_PID_INTEGRAL_DRIVE_MIN         HT3_PID_INTEGRAL_DRIVE_MIN
+#define EXT0_PID_INTEGRAL_DRIVE_MIN         5   //Digibike Change for new pid control
 /** \brief P-gain. Overridden if EEPROM activated. */
-#define EXT0_PID_P                          HT3_PID_P
+#define EXT0_PID_P                          11.5f   //Digibike Change
 /** \brief I-gain. Overridden if EEPROM activated. */
-#define EXT0_PID_I                          HT3_PID_I
+#define EXT0_PID_I                          0.45f   //Digibike Change
 /** \brief Dgain. Overridden if EEPROM activated.*/
-#define EXT0_PID_D                          HT3_PID_D
+#define EXT0_PID_D                          100.0f   //Digibike Change
 
 #endif // EXT0_HOTEND_TYPE == HOTEND_TYPE_V2
 
@@ -346,7 +346,7 @@ to 0 to disable. */
 /** \brief You can run any gcode command on extruder deselect/select. Seperate multiple commands with a new line \n.
 That way you can execute some mechanical components needed for extruder selection or retract filament or whatever you need.
 The codes are only executed for multiple extruder when changing the extruder. */
-#define EXT0_SELECT_COMMANDS                "M117 Extruder 0"
+#define EXT0_SELECT_COMMANDS                "M340 P0 S830\nG4 P1500\nM117 Extruder 1 T0"   //Digibike Change
 #define EXT0_DESELECT_COMMANDS              ""
 
 /** \brief The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on. */
@@ -377,12 +377,12 @@ The codes are only executed for multiple extruder when changing the extruder. */
 // ##   Configuration of the 2. extruder
 // ##########################################################################################
 
-#define EXT1_X_OFFSET                       (int32_t)(33.9 * XAXIS_STEPS_PER_MM)        // [steps]
-#define EXT1_Y_OFFSET                       (int32_t)( 0.1 * YAXIS_STEPS_PER_MM)        // [steps]
+#define EXT1_X_OFFSET                       (int32_t)(27.5 * XAXIS_STEPS_PER_MM)        // [steps] //Digibike Change
+#define EXT1_Y_OFFSET                       (int32_t)( 0.0 * YAXIS_STEPS_PER_MM)        // [steps] //Digibike Change
 #define EXT1_Z_OFFSET                       (int32_t)( 0.0 * YAXIS_STEPS_PER_MM)        // [steps] //to support Nozzle-Tip-Down-Hotends
 
 /** \brief for skeinforge 40 and later, steps to pull the plasic 1 mm inside the extruder, not out.  Overridden if EEPROM activated. */
-#define EXT1_STEPS_PER_MM                   (8.75 * RF_MICRO_STEPS)
+#define EXT1_STEPS_PER_MM                   (300 / 91.17 * 8.75 * RF_MICRO_STEPS)   //Digibike Change
 
 /** \brief What type of sensor is used?
 NTC-Thermistors
@@ -410,19 +410,22 @@ PTC-Thermistors
 52: USER_THERMISTORTABLE2 als PTC
 60: HEATER_USES_AD8495 (Delivers 5mV/degC)
 100: AD595 */
-#define EXT1_TEMPSENSOR_TYPE                3
+#define EXT1_TEMPSENSOR_TYPE                8   //Digibike Change
 
 /** \brief Analog input pin for reading temperatures or pin enabling SS for MAX6675 */
 #define EXT1_TEMPSENSOR_PIN                 TEMP_1_PIN
 
 /** \brief Which pin enables the heater */
 #define EXT1_HEATER_PIN                     HEATER_1_PIN
-#define EXT1_STEP_PIN                       E1_STEP_PIN
-#define EXT1_DIR_PIN                        E1_DIR_PIN
+  //Digibike Change
+#define EXT1_STEP_PIN                       E0_STEP_PIN
+  //Digibike Change
+#define EXT1_DIR_PIN                        E0_DIR_PIN
 
 /** \brief set to 0/1 for normal/inverse direction */
 #define EXT1_INVERSE                        true
-#define EXT1_ENABLE_PIN                     E1_ENABLE_PIN
+  //Digibike Change
+#define EXT1_ENABLE_PIN                     E0_ENABLE_PIN
 
 /** \brief For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1 */
 #define EXT1_ENABLE_ON                      true
@@ -470,15 +473,15 @@ Overridden if EEPROM activated. */
 #if EXT1_HOTEND_TYPE == HOTEND_TYPE_V2
 
 /** \brief The maximum value, I-gain can contribute to the output. Overridden if EEPROM activated. */
-#define EXT1_PID_INTEGRAL_DRIVE_MAX         HT3_PID_INTEGRAL_DRIVE_MAX
+#define EXT1_PID_INTEGRAL_DRIVE_MAX         130  //Digibike Change for new pid control
 /** \brief lower value for integral part. Overridden if EEPROM activated. */
-#define EXT1_PID_INTEGRAL_DRIVE_MIN         HT3_PID_INTEGRAL_DRIVE_MIN
+#define EXT1_PID_INTEGRAL_DRIVE_MIN         5  //Digibike Change for new pid control
 /** \brief P-gain.  Overridden if EEPROM activated. */
-#define EXT1_PID_P                          HT3_PID_P
+#define EXT1_PID_P                          11.5f  //Digibike Change
 /** \brief I-gain. Overridden if EEPROM activated. */
-#define EXT1_PID_I                          HT3_PID_I
+#define EXT1_PID_I                          0.45f  //Digibike Change
 /** \brief Dgain.  Overridden if EEPROM activated.*/
-#define EXT1_PID_D                          HT3_PID_D
+#define EXT1_PID_D                          100.0f  //Digibike Change
 
 #endif // EXT1_HOTEND_TYPE == HOTEND_TYPE_V2
 
@@ -508,7 +511,7 @@ to 0 to disable. */
 /** \brief You can run any gcode command on extruder deselect/select. Seperate multiple commands with a new line \n.
 That way you can execute some mechanical components needed for extruder selection or retract filament or whatever you need.
 The codes are only executed for multiple extruder when changing the extruder. */
-#define EXT1_SELECT_COMMANDS                "M117 Extruder 1"
+#define EXT1_SELECT_COMMANDS                "M340 P0 S1113\nG4 P1500\nM117 Extruder 2 T1"   //Digibike Change
 #define EXT1_DESELECT_COMMANDS              ""
 
 /** \brief The extruder cooler is a fan to cool the extruder when it is heating. If you turn the etxruder on, the fan goes on. */
@@ -547,7 +550,7 @@ The codes are only executed for multiple extruder when changing the extruder. */
 #define HEATED_BED_MIN_TEMP                 40
 
 /** \brief Maximal temperature which can be set for the heating bed */
-#define HEATED_BED_MAX_TEMP                 180
+#define HEATED_BED_MAX_TEMP                 130   //Digibike Change
 
 /** \brief Select type of your heated bed. It's the same as for EXT0_TEMPSENSOR_TYPE
 set to 0 if you don't have a heated bed */
@@ -573,14 +576,14 @@ Heat manager for heated bed:
 /** \brief The maximum value, I-gain can contribute to the output.
 The precise values may differ for different nozzle/resistor combination.
  Overridden if EEPROM activated. */
-#define HEATED_BED_PID_INTEGRAL_DRIVE_MAX   80
+#define HEATED_BED_PID_INTEGRAL_DRIVE_MAX   90   //Digibike Change for new pid control
 
 /** \brief lower value for integral part
 The I state should converge to the exact heater output needed for the target temperature.
 To prevent a long deviation from the target zone, this value limits the lower value.
 A good start is 30 lower then the optimal value. You need to leave room for cooling.
  Overridden if EEPROM activated. */
-#define HEATED_BED_PID_INTEGRAL_DRIVE_MIN   5
+#define HEATED_BED_PID_INTEGRAL_DRIVE_MIN   20   //Digibike Change for new pid control
 
 /** \brief P-gain.  Overridden if EEPROM activated. */
 #define HEATED_BED_PID_PGAIN                53.74
@@ -596,7 +599,7 @@ A good start is 30 lower then the optimal value. You need to leave room for cool
 
 /** \brief Extreme values to detect defect thermistors. */
 #define MIN_DEFECT_TEMPERATURE              -10
-#define MAX_DEFECT_TEMPERATURE              300
+#define MAX_DEFECT_TEMPERATURE              325  //Digibike Change
 
 
 #if HAVE_HEATED_BED==true && HEATED_BED_SENSOR_TYPE<101
@@ -714,9 +717,11 @@ can set it on for safety. */
 // ##########################################################################################
 
 /** \brief Motor Current MAX setting */
-#define MOTOR_CURRENT_MAX                       {150,150,126,126,126}                               // Values 0-255 (126 = ~2A), order: driver 1 (x), driver 2 (y), driver 3 (z), driver 4 (extruder 1), driver 5 (reserved)
+//Digibike Change 70 
+#define MOTOR_CURRENT_MAX                       {150,150,126,70,70}                               // Values 0-255 (126 = ~2A), order: driver 1 (x), driver 2 (y), driver 3 (z), driver 4 (extruder 1), driver 5 (reserved)
 /** \brief Motor Current settings at start: Tweak with menu for better silence <-> stability */
-#define MOTOR_CURRENT_NORMAL                    {110,110,95,90,90}
+//Digibike Change 53 
+#define MOTOR_CURRENT_NORMAL                    {110,110,95,53,53}  
 #define MOTOR_CURRENT_MIN                       EXTRUDER_CURRENT_PAUSED
 
 /** \brief number of analog input signals. Normally 1 for each temperature sensor */
