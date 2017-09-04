@@ -54,6 +54,7 @@ float           Printer::originOffsetMM[3] = {0,0,0};
 uint8_t         Printer::flag0 = 0;
 uint8_t         Printer::flag1 = 0;
 uint8_t         Printer::flag2 = 0;
+uint8_t         Printer::flag3 = 0;
 
 #if ALLOW_EXTENDED_COMMUNICATION < 2
 uint8_t         Printer::debugLevel = 0; ///< Bitfield defining debug output. 1 = echo, 2 = info, 4 = error, 8 = dry run., 16 = Only communication, 32 = No moves
@@ -62,6 +63,7 @@ uint8_t         Printer::debugLevel = 6; ///< Bitfield defining debug output. 1 
 #endif // ALLOW_EXTENDED_COMMUNICATION < 2
 
 uint8_t         Printer::stepsPerTimerCall = 1;
+uint16_t        Printer::stepsDoublerFrequency = STEP_DOUBLER_FREQUENCY;
 uint8_t         Printer::menuMode = 0;
 
 unsigned long   Printer::interval;                                      ///< Last step duration in ticks.
@@ -1138,10 +1140,9 @@ void Printer::setup()
     EEPROM::initBaudrate();
     HAL::serialSetBaudrate(baudrate);
 
-    if( Printer::debugInfo() )
-    {
-        Com::printFLN(Com::tStart);
-    }
+    // sending of this information tells the Repetier-Host that the firmware has restarted - never delete or change this to-be-sent information
+    Com::printFLN("");
+    Com::printFLN(Com::tStart); //http://forum.repetier.com/discussion/comment/16949/#Comment_16949
 
     UI_INITIALIZE;
 
@@ -1677,7 +1678,7 @@ bool Printer::allowQueueMove( void )
 {
     if( g_pauseStatus == PAUSE_STATUS_PAUSED ) return false;
 
-    if( !( (PAUSE_STATUS_GOTO_PAUSE1 <= g_pauseStatus && g_pauseStatus <= PAUSE_STATUS_PREPARE_CONTINUE1) || g_pauseStatus == PAUSE_STATUS_NONE) 
+    if( !( (PAUSE_STATUS_GOTO_PAUSE1 <= g_pauseStatus && g_pauseStatus <= PAUSE_STATUS_HEATING) || g_pauseStatus == PAUSE_STATUS_NONE) 
         && !PrintLine::cur )
     {
         // do not allow to process new moves from the queue while the printing is paused
