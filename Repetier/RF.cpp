@@ -339,14 +339,14 @@ short readStrainGauge( unsigned char uAddress ) //readStrainGauge dauert etwas u
     Register = Wire.read();
     (void)Register; //Nibbels: Tut so als würde die variable benutzt werden. Macht aber nix.
     Wire.endTransmission();
-	
+
 #if FEATURE_ZERO_DIGITS
-	if(-27768 < Result && Result < 27767){
-		Result -= Printer::g_pressure_offset; //no overflow possible: pressure_offset ist 5000 max.
-	}
+    if(-27768 < Result && Result < 27767){
+        Result -= Printer::g_pressure_offset; //no overflow possible: pressure_offset ist 5000 max.
+    }
 #endif // FEATURE_ZERO_DIGITS
 
-	
+
 /* brief: This is for correcting sinking hotends at high digit values because of DMS-Sensor by Nibbels  */
 #if FEATURE_DIGIT_Z_COMPENSATION
     static long nSensibleCompensationSum    = 0;
@@ -6997,10 +6997,10 @@ void determinePausePosition( void )
     {
         determineZPausePositionForPrint();
     }
-    else
+    else //Printer::operatingMode == OPERATING_MODE_MILL
     {
         // in operating mode "mill", we must move only into z direction first in order to get the tool out of the work part
-        if( g_pauseStatus == PAUSE_STATUS_GOTO_PAUSE3 || g_pauseStatus == PAUSE_STATUS_TASKGOTO_PAUSE_3 )
+        if( g_pauseStatus == PAUSE_STATUS_GOTO_PAUSE2 || g_pauseStatus == PAUSE_STATUS_TASKGOTO_PAUSE_2 )
         {
             g_nContinueSteps[X_AXIS] = 0;
             g_nContinueSteps[Y_AXIS] = 0;
@@ -8222,9 +8222,9 @@ void processCommand( GCode* pCommand )
                         queueTask( TASK_PAUSE_PRINT_AND_MOVE );
                     }
                 }
-                else if( pCommand->hasR() ){
-                    continuePrint();
-                }
+                //else if( pCommand->hasR() ){
+                //    continuePrint(); //doesnt work with this version of gcode processing while paused.
+                //}
                 else
                 {
                     queueTask( TASK_PAUSE_PRINT ); 
@@ -10698,6 +10698,13 @@ void processCommand( GCode* pCommand )
                 break;
             }
 
+#if FEATURE_USER_INT3
+            case 3989: // M3989 : proof that dummy function/additional hardware button works!
+            {
+                Com::printFLN( PSTR( "Request INT3:" ), g_uCOUNT_INT3 ); //evtl. je nach Anwendung entprellen nötig: wenn entprellen nötig, hilft evtl. interrupt nach ausführung sperren und mit dem watchdog-timer erneut entsperren.
+                break;
+            }
+#endif //FEATURE_USER_INT3
         }
     }
 

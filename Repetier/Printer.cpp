@@ -443,12 +443,12 @@ void Printer::moveToReal(float x,float y,float z,float e,float f)
 
 uint8_t Printer::setOrigin(float xOff,float yOff,float zOff)
 {
-    if( !isHomed() )
+    if( !areAxisHomed() )
     {
         if( debugErrors() )
         {
             // we can not set the origin when we do not know the home position
-            Com::printFLN( PSTR("setOrigin(): the origin can not be set because the home position is unknown") );
+            Com::printFLN( PSTR("setOrigin(): home position is unknown") );
         }
 
         showError( (void*)ui_text_set_origin, (void*)ui_text_home_unknown );
@@ -897,6 +897,12 @@ void Printer::setup()
 #error You have defined hardware z max endstop without pin assignment. Set pin number for Z_MAX_PIN
 #endif // Z_MAX_PIN>-1
 #endif // MAX_HARDWARE_ENDSTOP_Z
+
+#if FEATURE_USER_INT3
+    SET_INPUT( RESERVE_DIGITAL_PIN_PD3 );
+    PULLUP( RESERVE_DIGITAL_PIN_PD3, HIGH );
+    attachInterrupt( digitalPinToInterrupt(RESERVE_DIGITAL_PIN_PD3) , USER_INTERRUPT3_HOOK, FALLING );
+#endif //FEATURE_USER_INT3
 
 #if FAN_PIN>-1
     SET_OUTPUT(FAN_PIN);
