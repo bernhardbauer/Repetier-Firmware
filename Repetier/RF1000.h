@@ -304,7 +304,7 @@ Overridden if EEPROM activated. */
 #if EXT0_HOTEND_TYPE == HOTEND_TYPE_V2
 
 /** \brief The maximum value, I-gain can contribute to the output. Overridden if EEPROM activated. */
-#define EXT0_PID_INTEGRAL_DRIVE_MAX         130   //Digibike Change for new pid control
+#define EXT0_PID_INTEGRAL_DRIVE_MAX         HT3_PID_INTEGRAL_DRIVE_MAX
 /** \brief lower value for integral part. Overridden if EEPROM activated. */
 #define EXT0_PID_INTEGRAL_DRIVE_MIN         5   //Digibike Change for new pid control
 /** \brief P-gain. Overridden if EEPROM activated. */
