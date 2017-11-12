@@ -1,6 +1,24 @@
 TODO: Z-Lift-Bug seems to be still present! Avoid Z-Lift: Todo @Conrad -> Has this possibly been fixed by removing halfstepping in 1.37u4?
 TODO: Testing, testing ..
 
+V RF.01.37x2.Mod (2017-11-12)
+- insert missing temperature sensor menu again. It got lost at the end of the menu list when inserting tyreus lyben pid autotune
+- minor fix
+
+V RF.01.37x.Mod (2017-11-07)
+- AtlonXPs Digit Flow compensation got a special menu (Values are not stored within EEPROM! Do this with G-Code because this feature is only for special parts)
+- Notfall Pause / Emergency Pause got a prettier menu style
+- Notfall Z-Stop / Emergency Z-Stop got a prettier menu style
+- replaced y-axis with lengthMM[Y_AXIS] on some points
+- Repetiers fix for https://github.com/repetier/Repetier-Firmware/issues/709 -> https://github.com/repetier/Repetier-Firmware/commit/e76875ec2d04bd0dbfdd9a157270ee03f4731d5f
+
+V RF.01.37w9.Mod (2017-11-03)
+- removed Timo-Watchdog-Bug by limiting MoveZ to 5mm while Scan ABS/Scan PLA
+- removed PID autotune methods P, PI, PD because they are unnecessary. We found perfectly suitable methods for hotends and heated bed in 1.37w8.
+- some cleanup and updates in README.MD
+- completely removed DEBUG_SHOW_DEVELOPMENT_LOGS for cleanup because those msgs are not necessary anymore.
+- excluded some debug routines from compilation.
+
 V RF.01.37w8.Mod (2017-10-30)
 - Included PID autotune method Tyreus-Lyben (Hinweis/Anstoß von hal4822) -> possible best method for PID autotuning 220V Heated Bed
 - fixed readme
