@@ -90,21 +90,18 @@ uint8_t             PrintLine::linesPos         = 0;    // Position for executin
 /** \brief Move printer the given number of steps. Puts the move into the queue. Used by e.g. homing commands. */
 void PrintLine::moveRelativeDistanceInSteps(long x,long y,long z,long e,float feedrate,bool waitEnd,bool checkEndstop)
 {
-    float savedFeedrate = Printer::feedrate;
     Printer::queuePositionTargetSteps[X_AXIS] = Printer::queuePositionLastSteps[X_AXIS] + x;
     Printer::queuePositionTargetSteps[Y_AXIS] = Printer::queuePositionLastSteps[Y_AXIS] + y;
     Printer::queuePositionTargetSteps[Z_AXIS] = Printer::queuePositionLastSteps[Z_AXIS] + z;
     Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] + e;
 
-    Printer::feedrate = feedrate;
-    prepareQueueMove(checkEndstop,false);
-    Printer::feedrate = savedFeedrate;
+    prepareQueueMove(checkEndstop, false, feedrate);
+
     Printer::updateCurrentPosition();
     if(waitEnd)
         Commands::waitUntilEndOfAllMoves();
 
     previousMillisCmd = HAL::timeInMilliseconds();
-
 } // moveRelativeDistanceInSteps
 
 
@@ -140,7 +137,7 @@ void PrintLine::moveRelativeDistanceInStepsReal(long x,long y,long z,long e,floa
   If the cache is full, the method will wait, until a place gets free. During
   wait communication and temperature control is enabled.
   @param check_endstops Read endstop during move. */
-void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize)
+void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize, float feedrate)
 {
     Printer::unsetAllSteppersDisabled();
     PrintLine::waitForXFreeLines(1);
@@ -250,7 +247,7 @@ void PrintLine::prepareQueueMove(uint8_t check_endstops,uint8_t pathOptimize)
     }
     else
         p->distance = fabs(axisDistanceMM[E_AXIS]);
-    p->calculateQueueMove(axisDistanceMM, pathOptimize, p->primaryAxis);
+    p->calculateQueueMove(axisDistanceMM, pathOptimize, p->primaryAxis, feedrate);
 
 } // prepareQueueMove
 
@@ -342,11 +339,14 @@ void PrintLine::stopDirectMove( void ) //Funktion ist bereits zur ausführzeit v
 #endif // FEATURE_EXTENDED_BUTTONS || FEATURE_PAUSE_PRINTING
 
 
-void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, fast8_t drivingAxis)
+void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, fast8_t drivingAxis, float feedrate)
 {
     long    axisInterval[4];
-    //float   timeForMove = (float)(F_CPU)*distance / (isXOrYMove() ? RMath::max(Printer::minimumSpeed,Printer::feedrate) : Printer::feedrate);   // time is in ticks
-    float timeForMove = (float)(F_CPU) * distance / Printer::feedrate; // time is in ticks
+    float timeForMove = (float)(F_CPU) * distance / feedrate
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+                                                                      / g_nDigitFlowCompensation_feedmulti
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
+    ; // time is in ticks
     
     if(linesCount < MOVE_CACHE_LOW && timeForMove < LOW_TICKS_PER_MOVE)   // Limit speed to keep cache full.
     {
@@ -444,8 +444,17 @@ void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, 
     fAcceleration = 262144.0*(float)accelerationPrim / F_CPU; // will overflow without float!
     accelerationDistance2 = 2.0 * distance * slowestAxisPlateauTimeRepro * fullSpeed / ((float)F_CPU);  // mm^2/s^2
     startSpeed = endSpeed = minSpeed = safeSpeed(drivingAxis);
-    if(startSpeed > Printer::feedrate)
-        startSpeed = endSpeed = minSpeed = Printer::feedrate;
+    if(startSpeed > feedrate
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+                                      * g_nDigitFlowCompensation_feedmulti
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
+    ){
+        startSpeed = endSpeed = minSpeed = feedrate
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+                                      * g_nDigitFlowCompensation_feedmulti
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
+        ;
+    }
     // Can accelerate to full speed within the line
     if (startSpeed * startSpeed + accelerationDistance2 >= fullSpeed * fullSpeed)
         setNominalMove();
@@ -631,8 +640,17 @@ void PrintLine::calculateDirectMove(float axisDistanceMM[],uint8_t pathOptimize,
     fAcceleration = 262144.0*(float)accelerationPrim/F_CPU;                                         // will overflow without float!
     accelerationDistance2 = 2.0*distance*slowestAxisPlateauTimeRepro*fullSpeed/((float)F_CPU);  // mm^2/s^2
     startSpeed = endSpeed = minSpeed = safeSpeed(drivingAxis);
-    if(startSpeed > Printer::feedrate)
-        startSpeed = endSpeed = minSpeed = Printer::feedrate;
+    if(startSpeed > (isXOrYMove() ? DIRECT_FEEDRATE_XY : isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E)
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+                                      * g_nDigitFlowCompensation_feedmulti
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
+    ){
+        startSpeed = endSpeed = minSpeed = (isXOrYMove() ? DIRECT_FEEDRATE_XY : isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E)
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+                                      * g_nDigitFlowCompensation_feedmulti
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
+        ;
+    }
     // Can accelerate to full speed within the line
     if (startSpeed * startSpeed + accelerationDistance2 >= fullSpeed * fullSpeed)
         setNominalMove();
@@ -769,19 +787,26 @@ void PrintLine::updateTrapezoids()
     previousPlannerIndex(previousIndex);
     PrintLine *previous = &lines[previousIndex];
 
-    // filters z-move<->not z-move
-    /*if((previous->primaryAxis == Z_AXIS && act->primaryAxis != Z_AXIS) || (previous->primaryAxis != Z_AXIS && act->primaryAxis == Z_AXIS))
+    // filters z-move<->not z-move //Nibbels: Test if this is better with our type of Z-Comp because of bad edges? See https://github.com/repetier/Repetier-Firmware/commit/5fbe3748a0ca55386d5315d5b44c4209bec62fc2#diff-593812a66d7348c87b711b15b1ad5195L696
+    /*
+    if((previous->primaryAxis == Z_AXIS && act->primaryAxis != Z_AXIS) || (previous->primaryAxis != Z_AXIS && act->primaryAxis == Z_AXIS))
     {
         previous->setEndSpeedFixed(true);
         act->setStartSpeedFixed(true);
         act->updateStepsParameter();
         firstLine->unblock();
         return;
-    }*/
+    }
+    */
 
+    //Retract: 
     if( previous->isEOnlyMove() != act->isEOnlyMove() )
     {
-        previous->maxJunctionSpeed = previous->endSpeed;
+        previous->maxJunctionSpeed = RMath::min(previous->endSpeed,act->startSpeed);  //https://github.com/repetier/Repetier-Firmware/issues/716#issuecomment-347000465
+        /*
+        if(act->isEOnlyMove())      previous->maxJunctionSpeed = previous->safeSpeed(previous->primaryAxis); //previous->endSpeed; //previous->endSpeed;
+        if(previous->isEOnlyMove()) previous->maxJunctionSpeed = act->safeSpeed(act->primaryAxis); //act->startSpeed; //previous->endSpeed;
+        */
         previous->setEndSpeedFixed(true);
         act->setStartSpeedFixed(true);
         act->updateStepsParameter();
@@ -845,7 +870,9 @@ inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous,PrintLine *cu
     {
         // if we start/stop extrusion we need to do so with lowest possible end speed
         // or advance would leave a drolling extruder and can not adjust fast enough.
-        if(previous->isEMove() != current->isEMove()) //&& (previous->isXOrYMove() || current->isXOrYMove())
+        
+        //https://github.com/repetier/Repetier-Firmware/issues/716#issuecomment-347000465 @1)
+        if(previous->isEMove() != current->isEMove() && previous->isEMove()) //&& (previous->isXOrYMove() || current->isXOrYMove())
         {
             previous->setEndSpeedFixed(true);
             current->setStartSpeedFixed(true);

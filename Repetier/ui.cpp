@@ -1273,7 +1273,11 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 if(c2=='m')                                                                             // %om : Speed multiplier
                 {
-                    addInt(Printer::feedrateMultiply,3);
+                    addInt(Printer::feedrateMultiply
+ #if FEATURE_DIGIT_FLOW_COMPENSATION
+                            * g_nDigitFlowCompensation_feedmulti
+ #endif // FEATURE_DIGIT_FLOW_COMPENSATION
+                    ,3);
                     break;
                 }
                 if(c2=='p')                                                                             // %op : Is single double or quadstepping?
@@ -1511,8 +1515,8 @@ void UIDisplay::parse(char *txt,bool ram)
                                 addStringP( PSTR(UI_TEXT_SENSOR_8) );
                                 break;
                             }
-                            case 14: {
-                                addStringP( PSTR(UI_TEXT_SENSOR_14) );
+                            case 13: {
+                                addStringP( PSTR(UI_TEXT_SENSOR_13) );
                                 break;
                             }
                         }
@@ -1896,8 +1900,8 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 break;
             }
-#if FEATURE_READ_CALIPER
             case 'C':{
+#if FEATURE_READ_CALIPER
                 if(c2=='a')                                                                             // %Ca : Caliper Active Reading
                 {
                     addLong(abs(caliper_um)+caliper_collect_adjust,5);
@@ -1924,23 +1928,27 @@ void UIDisplay::parse(char *txt,bool ram)
                         addInt(100,3);
                     }
                 }
+#endif //FEATURE_READ_CALIPER
 #if FEATURE_DIGIT_FLOW_COMPENSATION
-                else if(c2=='U')                                                                        // %CU : digit flow lower limit
+                if(c2=='U')                                                                        // %CU : digit flow lower limit
                 {
-                    addInt((int)g_nDigitFlowCompensation_Fmin,6);
+                    addInt((int)g_nDigitFlowCompensation_Fmin,5);
                 }
                 else if(c2=='O')                                                                        // %CO : digit flow higher limit
                 {
-                    addInt((int)g_nDigitFlowCompensation_Fmax,6);
+                    addInt((int)g_nDigitFlowCompensation_Fmax,5);
                 }
                 else if(c2=='F')                                                                        // %CF : digit flow flowrate
                 {
-                    addInt((int)g_nDigitFlowCompensation_intense,3);
+                    addInt((int)g_nDigitFlowCompensation_intense,3); //eigentlcih sollten wir F und E hier tauschen... egal.
+                }
+                else if(c2=='E')                                                                        // %CE : digit flow feedrate
+                {
+                    addInt((int)g_nDigitFlowCompensation_speed_intense,3);
                 }
 #endif // FEATURE_DIGIT_FLOW_COMPENSATION
                 break;
             }
-#endif //FEATURE_READ_CALIPER
             case 'Z':                                                                                   // %Z1-Z4: Page5 service intervall, %Z5-Z8: Page4 printing/milling time
             {
                 if(c2=='1')                                                                             // Shows text printing/milling time since last service
@@ -4072,15 +4080,15 @@ void UIDisplay::nextPreviousAction(int8_t next)
                         if(increment > 0){
                             switch(drive){
                               case 3: { drive = 8; break; }
-                              case 8: { drive = 14; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
-                              case 14: { drive = 1; break; }
+                              case 8: { drive = 13; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
+                              case 13: { drive = 1; break; }
                               default: { drive = 3; break; }
                             }
                         }else{ //== 0 gibts nicht, soweit ich weiß
                             switch(drive){
                               case 3: { drive = 1; break; }
-                              case 1: { drive = 14; break; }
-                              case 14: { drive = 8; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
+                              case 1: { drive = 13; break; }
+                              case 13: { drive = 8; break; } //add more sensors for menu-tweaking here, those are the most common for RFx000
                               default: { drive = 3; break; }
                             }
                         }
@@ -4133,7 +4141,13 @@ void UIDisplay::nextPreviousAction(int8_t next)
         case UI_ACTION_FLOW_DF:
         {
             INCREMENT_MIN_MAX(g_nDigitFlowCompensation_intense,1,-99,99);
-            //flowmulti wird zur laufzeit geändert, anhand von steigung intense
+            //flowmulti wird zur laufzeit geändert, anhand von steigung intense -> aber je nach cache erst sehr spät.
+            break;
+        }
+        case UI_ACTION_FLOW_DV:
+        {
+            INCREMENT_MIN_MAX(g_nDigitFlowCompensation_speed_intense,1,-99,99);
+            //feedmulti wird zur laufzeit geändert, anhand von steigung intense
             break;
         }
 #endif //FEATURE_DIGIT_FLOW_COMPENSATION
@@ -5363,6 +5377,15 @@ void UIDisplay::executeAction(int action)
                 break;
             }
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION
+#if FEATURE_ALIGN_EXTRUDERS
+            case UI_ACTION_ALIGN_EXTRUDERS:
+            {
+                uid.menuPos[0] = 0;
+                uid.menuLevel = 0;
+                startAlignExtruders();
+                break;
+            }
+#endif // FEATURE_ALIGN_EXTRUDERS
         }
     }
 
