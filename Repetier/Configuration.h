@@ -214,9 +214,6 @@ See "configuration of the speed vs. cpu usage" within RF1000.h / RF2000.h
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION 
 
-/** \brief Enables debug outputs from the compensation in z direction */
-#define DEBUG_HEAT_BED_Z_COMPENSATION       0                                                   // 1 = on, 0 = off
-
 /** \brief Enables debug outputs from the heat bed scan */
 #define DEBUG_HEAT_BED_SCAN                 0                                                   // 0 = off, 1 = on, 2 = on with more debug outputs
 
@@ -247,12 +244,12 @@ with a dry run, you can test the speed of path computations, which are still per
 /** \brief Writes the free RAM to output, if it is less then at the last test. Should always return
 values >500 for safety, since it doesn't catch every function call. Nice to tweak cache
 usage or for seraching for memory induced errors. Switch it off for production, it costs execution time. */
-//#define DEBUG_FREE_MEMORY
+#define DEBUG_FREE_MEMORY                             0                                         // 1 = on, 0 = off
 
-#ifdef DEBUG_FREE_MEMORY
-#define DEBUG_MEMORY                        Commands::checkFreeMemory();
+#if DEBUG_FREE_MEMORY
+ #define DEBUG_MEMORY                        Commands::checkFreeMemory();
 #else
-#define DEBUG_MEMORY
+ #define DEBUG_MEMORY
 #endif // DEBUG_FREE_MEMORY
 
 /** \brief If enabled, writes the created generic table to serial port at startup. */

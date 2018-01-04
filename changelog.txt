@@ -1,6 +1,29 @@
 TODO: Z-Lift-Bug seems to be still present! Avoid Z-Lift: Todo @Conrad -> Has this possibly been fixed by removing halfstepping in 1.37u4?
 TODO: Testing, testing ..
 
+V RF.01.38.08.Mod (2018-01-03)
+- addFloat overlow bugfix for 4+ digits.
+
+V RF.01.38.07.Mod (2018-01-03)
+- Better Init
+- ZOS now uses matrix interpolation instead of matrix node
+- homing safely shuts off zcmp and waits for it
+- disable z stepper z shuts off zcmp before shutting off stepper and cleaning up coordinates - seems to be safer??
+- removed disable CMP where it is not needed anymore because of zhome-cmp-off
+- for now if( PrintLine::linesCount > 2 ) is marking "printing" instead of 5. Had some trouble at startmade.
+- Commands::waitUntilEndOfAllMoves() waits for zcomp to reach target too.
+
+V RF.01.38.05.Mod (2018-01-02)
+- div 0 fix for ECMP
+- strategy change for activating and disabling zCMP
+
+V RF.01.38.05.Mod (2018-01-02)
+- changed fan speed to display float
+- added auto adjust function for g_minZCompensationSteps to set it to first layer height
+- added auto adjust function for g_maxZCompensationSteps to set it to g_minZCompensationSteps + max 5% comp pro layer.
+- added minimum matrix value to Matrix output M3013
+- changed some functions to return "void", because they did not return anything of value.
+
 V RF.01.38.03.Mod (2018-01-01)
 - added E-Compensation improvement for fist and last stretching-layer within ZCMP.
 - removed one Milling-Bug by unifying the search for interpolated matrix depths. (directPosition was added twice in getworkpartoffset??)

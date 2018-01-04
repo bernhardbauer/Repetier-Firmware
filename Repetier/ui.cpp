@@ -709,7 +709,7 @@ void UIDisplay::addLong(long value,char digits)
 } // addLong
 
 
-const float roundingTable[] PROGMEM = {0.5,0.05,0.005,0.0005};
+const float roundingTable[] PROGMEM = {0.5,0.05,0.005,0.0005,0.00005};
 void UIDisplay::addFloat(float number, char fixdigits,uint8_t digits)
 {
     if(col>=MAX_COLS) return;
@@ -721,6 +721,8 @@ void UIDisplay::addFloat(float number, char fixdigits,uint8_t digits)
         number = -number;
         fixdigits--;
     }
+
+    digits = (digits <= 4 ? digits : 4);
     number += pgm_read_float(&roundingTable[digits]); // for correct rounding
 
     // Extract the integer part of the number and print it
@@ -947,7 +949,7 @@ void UIDisplay::parse(char *txt,bool ram)
             {
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
                 if(c2=='s') {                                                                           // %Fs : Fan speed in Percent
-                    addInt(Printer::getFanSpeed(true), 3); 
+                    addFloat(Printer::getFanSpeed(false)/2.55f,3,1); 
                 }
                 else if(c2=='h') {                                                                      // %Fh : Fan frequency in Hz --> Wert passt grob, ist aber nicht exakt! F_CPU/3906/255*mode...
                     addInt((1 << cooler_pwm_speed)*15, 3); 
@@ -1968,7 +1970,7 @@ void UIDisplay::parse(char *txt,bool ram)
                 }
                 else if(c2=='P')                                                                        // %LP : ECMP %
                 {
-                    addFloat(Printer::compensatedPositionOverPercE,1,4);
+                    addFloat(Printer::compensatedPositionOverPercE,2,4);
                     break;
                 }
                 else if(c2=='m')                                                                        // %Lm : g_minZCompensationSteps
@@ -3180,7 +3182,7 @@ void UIDisplay::nextPreviousAction(int8_t next)
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
         case UI_ACTION_FANSPEED:
         {
-            Commands::setFanSpeed(Printer::getFanSpeed()+increment*3,false);
+            Commands::setFanSpeed(Printer::getFanSpeed()+increment,false);
             break;
         }
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
@@ -5399,7 +5401,7 @@ void UIDisplay::executeAction(int action)
                 // save the determined values to the EEPROM        
                 if(g_ZMatrixChangedInRam){
                     uid.executeAction(UI_ACTION_TOP_MENU);
-                    saveCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );     
+                    saveCompensationMatrix( (unsigned int)(EEPROM_SECTOR_SIZE * g_nActiveHeatBed) );
                     if( Printer::debugInfo() )
                     {
                         Com::printFLN( PSTR( "Manual Input: the heat bed compensation matrix has been saved" ) );

@@ -818,7 +818,7 @@ can set it on for safety. */
 
 /** Some fans won't start for low values, but would run if started with higher power at the beginning.
 This defines the full power duration before returning to set value. Time is in milliseconds */
-#define FAN_KICKSTART_TIME  200                                                                 // [ms]
+#define FAN_KICKSTART_TIME  100                                                                 // [ms]
 
 /** Defines the max. fan speed for M106 controlled fans. Normally 255 to use full range, but for
  12V fans on 24V this might help preventing a defect. For all other fans there is a explicit maximum PWM value
@@ -1013,6 +1013,10 @@ to activate the quadratic term. Only adds lots of computations and storage usage
 // ##########################################################################################
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION
+
+/** \brief Specifies if you want to adjust minimal and maximum compensation steps to first layer */
+#define AUTOADJUST_MIN_MAX_ZCOMP                1
+#define AUTOADJUST_STARTMADEN_AUSSCHLUSS        0.35f
 
 /** \brief Specifies until which height the z compensation must complete
 This value should be roughly the double amount of mm which is detected as error of the heat bed. */
@@ -1241,9 +1245,6 @@ Above this value the z compensation will distribute the roughness of the surface
 // ##########################################################################################
 
 #if FEATURE_MILLING_MODE
-
-/** \brief Enables debug outputs from the compensation in z direction */
-#define DEBUG_WORK_PART_Z_COMPENSATION      0                                                   // 1 = on, 0 = off
 
 /** \brief Enables debug outputs from the work part scan */
 #define DEBUG_WORK_PART_SCAN                0                                                   // 1 = on, 0 = off
