@@ -49,7 +49,7 @@
 #endif // FEATURE_MILLING_MODE
 
 /** \brief Number of extruders */
-#define NUM_EXTRUDER                        1
+#define NUM_EXTRUDER                        2
 
 /** \brief Allows to use the 230V output */
 #define FEATURE_230V_OUTPUT                 0                                                   // the RF1000 does not support the 230 V output
@@ -230,7 +230,7 @@ Overridden if EEPROM activated.*/
 #define EXT0_Z_OFFSET                       0 //to support Nozzle-Tip-Down-Hotends
 
 /** \brief for skeinforge 40 and later, steps to pull the plasic 1 mm inside the extruder, not out.  Overridden if EEPROM activated. */
-#define EXT0_STEPS_PER_MM                   (8.75 * RF_MICRO_STEPS)
+#define EXT0_STEPS_PER_MM                   247 // 990 - Bulldog XL wenn RF1000_MICRO_STEPS = 32 // (8.875 * RF1000_MICRO_STEPS)
 
 /** \brief What type of sensor is used?
 NTC-Thermistors
@@ -388,7 +388,7 @@ The codes are only executed for multiple extruder when changing the extruder. */
 #define EXT1_Z_OFFSET                       (int32_t)( 0.0 * YAXIS_STEPS_PER_MM)        // [steps] //to support Nozzle-Tip-Down-Hotends
 
 /** \brief for skeinforge 40 and later, steps to pull the plasic 1 mm inside the extruder, not out.  Overridden if EEPROM activated. */
-#define EXT1_STEPS_PER_MM                   (8.75 * RF_MICRO_STEPS)
+#define EXT1_STEPS_PER_MM                   247 // 990 - Bulldog XL wenn RF1000_MICRO_STEPS = 32 // (8.875 * RF1000_MICRO_STEPS)
 
 /** \brief What type of sensor is used?
 NTC-Thermistors
@@ -546,7 +546,7 @@ The codes are only executed for multiple extruder when changing the extruder. */
 #define HEATED_BED_MIN_TEMP                 40
 
 /** \brief Maximal temperature which can be set for the heating bed */
-#define HEATED_BED_MAX_TEMP                 180
+#define HEATED_BED_MAX_TEMP                 110
 
 /** \brief Select type of your heated bed. It's the same as for EXT0_TEMPSENSOR_TYPE
 set to 0 if you don't have a heated bed */
@@ -719,9 +719,9 @@ can set it on for safety. */
 // ##########################################################################################
 
 /** \brief Motor Current MAX setting */
-#define MOTOR_CURRENT_MAX                       {150,150,126,126,126}                               // Values 0-255 (126 = ~2A), order: driver 1 (x), driver 2 (y), driver 3 (z), driver 4 (extruder 1), driver 5 (reserved)
+#define MOTOR_CURRENT_MAX                       {150,150,126,50,50} // {150,150,126,126,126}                               // Values 0-255 (126 = ~2A), order: driver 1 (x), driver 2 (y), driver 3 (z), driver 4 (extruder 1), driver 5 (reserved)
 /** \brief Motor Current settings at start: Tweak with menu for better silence <-> stability */
-#define MOTOR_CURRENT_NORMAL                    {110,110,105,110,110}
+#define MOTOR_CURRENT_NORMAL                    {110,110,105,45,45} // {110,110,105,110,110}
 #define MOTOR_CURRENT_MIN                       EXTRUDER_CURRENT_PAUSED
 
 /** \brief number of analog input signals. Normally 1 for each temperature sensor */
