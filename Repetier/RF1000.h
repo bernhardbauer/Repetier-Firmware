@@ -121,7 +121,7 @@ If EEPROM is enabled these values will be overidden with the values in the EEPRO
 
 #define X_MAX_LENGTH_MILL                   (long)230
 #define Y_MAX_LENGTH                        (long)245
-#define Z_MAX_LENGTH                        (long)200
+#define Z_MAX_LENGTH                        (long)190
 
 /** \brief Coordinates for the minimum axis. Can also be negative if you want to have the bed start at 0 and the printer can go to the left side
 of the bed. Maximum coordinate is given by adding the above MAX_LENGTH values. */
