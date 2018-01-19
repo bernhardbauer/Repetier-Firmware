@@ -121,7 +121,7 @@ If EEPROM is enabled these values will be overidden with the values in the EEPRO
 
 #define X_MAX_LENGTH_MILL                   (long)230
 #define Y_MAX_LENGTH                        (long)245
-#define Z_MAX_LENGTH                        (long)190
+#define Z_MAX_LENGTH                        (long)180
 
 /** \brief Coordinates for the minimum axis. Can also be negative if you want to have the bed start at 0 and the printer can go to the left side
 of the bed. Maximum coordinate is given by adding the above MAX_LENGTH values. */
@@ -230,7 +230,7 @@ Overridden if EEPROM activated.*/
 #define EXT0_Z_OFFSET                       0 //to support Nozzle-Tip-Down-Hotends
 
 /** \brief for skeinforge 40 and later, steps to pull the plasic 1 mm inside the extruder, not out.  Overridden if EEPROM activated. */
-#define EXT0_STEPS_PER_MM                   247 // 990 - Bulldog XL wenn RF1000_MICRO_STEPS = 32 // (8.875 * RF1000_MICRO_STEPS)
+#define EXT0_STEPS_PER_MM                   990 // (247) 990 - Bulldog XL wenn RF1000_MICRO_STEPS = 32 // (8.875 * RF1000_MICRO_STEPS)
 
 /** \brief What type of sensor is used?
 NTC-Thermistors
@@ -388,7 +388,7 @@ The codes are only executed for multiple extruder when changing the extruder. */
 #define EXT1_Z_OFFSET                       (int32_t)( 0.0 * YAXIS_STEPS_PER_MM)        // [steps] //to support Nozzle-Tip-Down-Hotends
 
 /** \brief for skeinforge 40 and later, steps to pull the plasic 1 mm inside the extruder, not out.  Overridden if EEPROM activated. */
-#define EXT1_STEPS_PER_MM                   247 // 990 - Bulldog XL wenn RF1000_MICRO_STEPS = 32 // (8.875 * RF1000_MICRO_STEPS)
+#define EXT1_STEPS_PER_MM                   990 // (247) 990 - Bulldog XL wenn RF1000_MICRO_STEPS = 32 // (8.875 * RF1000_MICRO_STEPS)
 
 /** \brief What type of sensor is used?
 NTC-Thermistors
@@ -719,9 +719,9 @@ can set it on for safety. */
 // ##########################################################################################
 
 /** \brief Motor Current MAX setting */
-#define MOTOR_CURRENT_MAX                       {150,150,126,50,50} // {150,150,126,126,126}                               // Values 0-255 (126 = ~2A), order: driver 1 (x), driver 2 (y), driver 3 (z), driver 4 (extruder 1), driver 5 (reserved)
+#define MOTOR_CURRENT_MAX                       {150,150,126,60,60} // {150,150,126,126,126}                               // Values 0-255 (126 = ~2A), order: driver 1 (x), driver 2 (y), driver 3 (z), driver 4 (extruder 1), driver 5 (reserved)
 /** \brief Motor Current settings at start: Tweak with menu for better silence <-> stability */
-#define MOTOR_CURRENT_NORMAL                    {110,110,105,45,45} // {110,110,105,110,110}
+#define MOTOR_CURRENT_NORMAL                    {110,110,105,40,40} // {110,110,105,110,110}
 #define MOTOR_CURRENT_MIN                       EXTRUDER_CURRENT_PAUSED
 
 /** \brief number of analog input signals. Normally 1 for each temperature sensor */
@@ -882,7 +882,7 @@ enabling this may cause to stall your moves when 20000Hz is reached. */
 
 /** \brief If you reach STEP_DOUBLER_FREQUENCY the firmware will do 2 or 4 steps with nearly no delay. That can be too fast
 for some printers causing an early stall. */
-#define DOUBLE_STEP_DELAY                   0                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
+#define DOUBLE_STEP_DELAY                   1                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
 
 /** \brief Number of moves we can cache in advance.
 This number of moves can be cached in advance. If you wan't to cache more, increase this. Especially on
