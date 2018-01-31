@@ -31,7 +31,7 @@
 #define PRINTER_FLAG0_MANUAL_MOVE_MODE          16
 #define PRINTER_FLAG0_LARGE_MACHINE             128
 
-#define PRINTER_FLAG1_HOMED                     1
+//#define PRINTER_FLAG1_HOMED                     1 -> egal geworden.
 #define PRINTER_FLAG1_AUTOMOUNT                 2
 #define PRINTER_FLAG1_ANIMATION                 4
 #define PRINTER_FLAG1_ALLKILLED                 8
@@ -83,9 +83,13 @@ public:
     static uint8_t          flag3;
     static uint8_t          stepsPerTimerCall;
     static uint16_t         stepsDoublerFrequency;
-    static unsigned long    interval;                           // Last step duration in ticks.
+    static volatile unsigned long interval;                           // Last step duration in ticks.
     static unsigned long    timer;                              // used for acceleration/deceleration timing
     static unsigned long    stepNumber;                         // Step number in current move.
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+    static unsigned long    interval_mod;                          // additional step duration in ticks to slow the printer down live
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
+
     static float            originOffsetMM[3];
     static volatile long    queuePositionTargetSteps[4];        // Target position in steps.
     static volatile long    queuePositionLastSteps[4];          // Position in steps from origin.
@@ -289,7 +293,7 @@ public:
 #endif // STEPPER_ON_DELAY
 
         // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
-        setHomed( false , false , -1 , -1 );
+        setHomed( /*false ,*/ false , -1 , -1 );
         cleanupXPositions();
 
     } // disableXStepper
@@ -310,7 +314,7 @@ public:
 #endif // STEPPER_ON_DELAY
 
         // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
-        setHomed( false, -1, false , -1 );
+        setHomed( /*false ,*/ -1, false , -1 );
         cleanupYPositions();
 
     } // disableYStepper
@@ -319,7 +323,7 @@ public:
     static INLINE void disableZStepper()
     {
         // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
-        setHomed(false , -1 , -1 , false ); // disable CMP mit wait ist bei unhome Z mit drin. //Printer::disableCMPnow(true); //fahre vom heizbett auf 0 bevor stepper aus.
+        setHomed( /*false ,*/ -1 , -1 , false ); // disable CMP mit wait ist bei unhome Z mit drin. //Printer::disableCMPnow(true); //fahre vom heizbett auf 0 bevor stepper aus.
 
 #if (Z_ENABLE_PIN > -1)
         WRITE(Z_ENABLE_PIN,!Z_ENABLE_ON);
@@ -592,13 +596,13 @@ public:
         else return 1;
     } // isZHomeSafe
 
+    static int8_t anyHomeDir(uint8_t axis);
 #if FEATURE_CHECK_HOME
     static bool anyEndstop( uint8_t axis );
     static void changeAxisDirection( uint8_t axis, int8_t direction );
     static void startAxisStep( uint8_t axis );
     static void endAxisStep(uint8_t axis);
     static void stepAxisStep(uint8_t axis, uint8_t slower = 1);
-    static int8_t anyHomeDir(uint8_t axis);
     static int8_t checkHome(int8_t axis);
 #endif //FEATURE_CHECK_HOME
 
@@ -607,14 +611,14 @@ public:
         return (bool)(Printer::isAxisHomed(Z_AXIS) && Printer::isAxisHomed(Y_AXIS) && Printer::isAxisHomed(X_AXIS));
     } // areAxisHomed
 
-    static inline void setHomed(uint8_t b, int8_t x = -1, int8_t y = -1, int8_t z = -1)
+    static inline void setHomed(/*uint8_t b,*/ int8_t x = -1, int8_t y = -1, int8_t z = -1)
     {
-        flag1 = (b ? flag1 | PRINTER_FLAG1_HOMED : flag1 & ~PRINTER_FLAG1_HOMED);
+        //flag1 = (b ? flag1 | PRINTER_FLAG1_HOMED : flag1 & ~PRINTER_FLAG1_HOMED);
         if(x != -1) flag3 = (x ? flag3 | PRINTER_FLAG3_X_HOMED : flag3 & ~PRINTER_FLAG3_X_HOMED);
         if(y != -1) flag3 = (y ? flag3 | PRINTER_FLAG3_Y_HOMED : flag3 & ~PRINTER_FLAG3_Y_HOMED);
         if(z != -1) flag3 = (z ? flag3 | PRINTER_FLAG3_Z_HOMED : flag3 & ~PRINTER_FLAG3_Z_HOMED);  
-        if((flag3 & PRINTER_FLAG3_X_HOMED) && (flag3 & PRINTER_FLAG3_Y_HOMED) && (flag3 & PRINTER_FLAG3_Z_HOMED)) flag1 |= PRINTER_FLAG1_HOMED;
-        if(!(flag3 & PRINTER_FLAG3_X_HOMED) && !(flag3 & PRINTER_FLAG3_Y_HOMED) && !(flag3 & PRINTER_FLAG3_Z_HOMED)) flag1 &= ~PRINTER_FLAG1_HOMED;
+        //if((flag3 & PRINTER_FLAG3_X_HOMED) && (flag3 & PRINTER_FLAG3_Y_HOMED) && (flag3 & PRINTER_FLAG3_Z_HOMED)) flag1 |= PRINTER_FLAG1_HOMED;
+        //if(!(flag3 & PRINTER_FLAG3_X_HOMED) && !(flag3 & PRINTER_FLAG3_Y_HOMED) && !(flag3 & PRINTER_FLAG3_Z_HOMED)) flag1 &= ~PRINTER_FLAG1_HOMED;
         
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
         if( !isAxisHomed(Z_AXIS) ){
@@ -931,7 +935,7 @@ public:
         flag0 |= PRINTER_FLAG0_STEPPER_DISABLED;
 
         // when the stepper is disabled we loose our home position because somebody else can move our mechanical parts
-        setHomed( false, false, false, false ); //mag sein, dass wir das nicht brauchen, weil sowieso die einzelnen stepper deaktiviert werden müssen.
+        setHomed( /*false ,*/ false, false, false ); //mag sein, dass wir das nicht brauchen, weil sowieso die einzelnen stepper deaktiviert werden müssen.
         setZOriginSet(false);
     } // markAllSteppersDisabled
 
@@ -1237,8 +1241,11 @@ public:
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
     static void performZCompensation( void );
-    static void disableCMPnow( bool wait = false );
+#if FEATURE_SENSIBLE_PRESSURE
+    static void enableSenseOffsetnow( void );
+#endif // FEATURE_SENSIBLE_PRESSURE
     static void enableCMPnow( void );
+    static void disableCMPnow( bool wait = false );
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
 private:

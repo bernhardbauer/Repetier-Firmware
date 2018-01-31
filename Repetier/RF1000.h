@@ -282,7 +282,7 @@ Overridden if EEPROM activated. */
 
 /** \brief Feedrate from halted extruder in mm/s
 Overridden if EEPROM activated. */
-#define EXT0_MAX_START_FEEDRATE             18
+#define EXT0_MAX_START_FEEDRATE             12
 
 /** \brief Acceleration in mm/s^2
 Overridden if EEPROM activated. */
@@ -440,7 +440,7 @@ Overridden if EEPROM activated. */
 
 /** \brief Feedrate from halted extruder in mm/s
 Overridden if EEPROM activated. */
-#define EXT1_MAX_START_FEEDRATE             18
+#define EXT1_MAX_START_FEEDRATE             12
 
 /** \brief Acceleration in mm/s^2
 Overridden if EEPROM activated. */
@@ -670,10 +670,9 @@ on this endstop. */
 /** \brief Sets direction of endstops when homing; 1=MAX, -1=MIN */
 #define X_HOME_DIR                          -1
 #define Y_HOME_DIR                          -1
-
-#if !FEATURE_MILLING_MODE
+//gets inverted when searching home dir in milling mode:
 #define Z_HOME_DIR                          -1
-#endif // !FEATURE_MILLING_MODE
+
 
 /** \brief If true, axis won't move to coordinates less than zero. */
 #define min_software_endstop_x              false
@@ -965,7 +964,7 @@ it 0 as default. */
 Without a correct adjusted advance algorithm, you get blobs at points, where acceleration changes. The
 effect increases with speed and acceleration difference. Using the advance method decreases this effect.
 For more informations, read the wiki. */
-#define USE_ADVANCE 1
+#define USE_ADVANCE                         1
 
 /** \brief enables quadratic component.
 Uncomment to allow a quadratic advance dependency. Linear is the dominant value, so no real need
@@ -1221,10 +1220,5 @@ Above this value the z compensation will distribute the roughness of the surface
 #endif // FEATURE_FIND_Z_ORIGIN
 
 #endif // FEATURE_MILLING_MODE
-
-/** beta!!! Nibbels/PeterKA only!!! */
-#define FEATURE_CHECK_HOME 0
-/** beta!!! Nibbels/Wessix only!!! */
-#define FEATURE_SEE_DISPLAY 1
 
 #endif // RF1000_H

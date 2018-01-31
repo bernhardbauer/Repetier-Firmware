@@ -395,11 +395,7 @@ void PrintLine::stopDirectMove( void ) //Funktion ist bereits zur ausführzeit v
 void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, fast8_t drivingAxis, float feedrate)
 {
     long    axisInterval[4];
-    float timeForMove = (float)(F_CPU) * distance / feedrate
-#if FEATURE_DIGIT_FLOW_COMPENSATION
-                                                                      / g_nDigitFlowCompensation_feedmulti
-#endif // FEATURE_DIGIT_FLOW_COMPENSATION
-    ; // time is in ticks
+    float timeForMove = (float)(F_CPU) * distance / feedrate; // time is in ticks
     
     if(linesCount < MOVE_CACHE_LOW && timeForMove < LOW_TICKS_PER_MOVE)   // Limit speed to keep cache full.
     {
@@ -408,7 +404,6 @@ void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, 
         //OUT_P_F_LN("Slow ",time_for_move);
     }
     timeInTicks = timeForMove;
-    UI_MEDIUM;                      // do check encoder
     // Compute the solwest allowed interval (ticks/step), so maximum feedrate is not violated
     int32_t limitInterval0;
     int32_t limitInterval = limitInterval0 = timeForMove/stepsRemaining; // until not violated by other constraints it is your target speed
@@ -497,16 +492,8 @@ void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, 
     fAcceleration = 262144.0*(float)accelerationPrim / F_CPU; // will overflow without float!
     accelerationDistance2 = 2.0 * distance * slowestAxisPlateauTimeRepro * fullSpeed / ((float)F_CPU);  // mm^2/s^2
     startSpeed = endSpeed = minSpeed = safeSpeed(drivingAxis);
-    if(startSpeed > feedrate
-#if FEATURE_DIGIT_FLOW_COMPENSATION
-                                      * g_nDigitFlowCompensation_feedmulti
-#endif // FEATURE_DIGIT_FLOW_COMPENSATION
-    ){
-        startSpeed = endSpeed = minSpeed = feedrate
-#if FEATURE_DIGIT_FLOW_COMPENSATION
-                                      * g_nDigitFlowCompensation_feedmulti
-#endif // FEATURE_DIGIT_FLOW_COMPENSATION
-        ;
+    if(startSpeed > feedrate){
+        startSpeed = endSpeed = minSpeed = feedrate;
     }
     // Can accelerate to full speed within the line
     if (startSpeed * startSpeed + accelerationDistance2 >= fullSpeed * fullSpeed)
@@ -517,19 +504,19 @@ void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, 
     // p->vMax = 46000;
     // p->plateauN = (p->vMax*p->vMax/p->accelerationPrim)>>1;
 
-#if USE_ADVANCE
-    if(!isXYZMove() || !isEPositiveMove()) {   // No head move or E move only or sucking filament back
-#ifdef ENABLE_QUADRATIC_ADVANCE
+ #if USE_ADVANCE
+    if( !isXYZMove() || !isEPositiveMove()) {   // No head move or E move only or sucking filament back
+  #ifdef ENABLE_QUADRATIC_ADVANCE
         advanceRate = 0;
         advanceFull = 0;
-#endif // ENABLE_QUADRATIC_ADVANCE
+  #endif // ENABLE_QUADRATIC_ADVANCE
         advanceL = 0;
     }
     else
     {
         float advlin = fabs(speedE) * Extruder::current->advanceL * 0.001 * Printer::axisStepsPerMM[E_AXIS];
         advanceL = (uint16_t)((65536L * advlin) / vMax); //advanceLscaled = (65536*vE*k2)/vMax
-#if ENABLE_QUADRATIC_ADVANCE
+  #if ENABLE_QUADRATIC_ADVANCE
         advanceFull = 65536 * Extruder::current->advanceK * speedE * speedE; // Steps*65536 at full speed
         long steps = (HAL::U16SquaredToU32(vMax)) / (accelerationPrim << 1); // v^2/(2*a) = steps needed to accelerate from 0-vMax
         advanceRate = advanceFull / steps;
@@ -537,25 +524,24 @@ void PrintLine::calculateQueueMove(float axisDistanceMM[],uint8_t pathOptimize, 
             maxadv = (advanceFull >> 16);
             maxadvspeed = fabs(speedE);
         }
-#endif // ENABLE_QUADRATIC_ADVANCE
+  #endif // ENABLE_QUADRATIC_ADVANCE
         if(advlin > maxadv2) {
             maxadv2 = advlin;
             maxadvspeed = fabs(speedE);
         }
     }
-#endif // USE_ADVANCE
+ #endif // USE_ADVANCE
 
-    UI_MEDIUM;          // do check encoder
     updateTrapezoids();
     // how much steps on primary axis do we need to reach target feedrate
     // p->plateauSteps = (long) (((float)p->acceleration *0.5f / slowestAxisPlateauTimeRepro + p->vMin) *1.01f/slowestAxisPlateauTimeRepro);
 #else
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
+ #if USE_ADVANCE
+  #ifdef ENABLE_QUADRATIC_ADVANCE
     advanceRate = 0;    // No advance for constant speeds
     advanceFull = 0;
-#endif // ENABLE_QUADRATIC_ADVANCE
-#endif // USE_ADVANCE
+  #endif // ENABLE_QUADRATIC_ADVANCE
+ #endif // USE_ADVANCE
 #endif // RAMP_ACCELERATION
 
     // Make result permanent
@@ -574,7 +560,6 @@ void PrintLine::calculateDirectMove(float axisDistanceMM[],uint8_t pathOptimize,
     float   timeForMove = (float)(F_CPU)*distance / (isXOrYMove() ? DIRECT_FEEDRATE_XY : isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E);    // time is in ticks
 
     timeInTicks = timeForMove;
-    UI_MEDIUM;                      // do check encoder
 
     // Compute the solwest allowed interval (ticks/step), so maximum feedrate is not violated
     long limitInterval = timeForMove/stepsRemaining; // until not violated by other constraints it is your target speed
@@ -693,16 +678,8 @@ void PrintLine::calculateDirectMove(float axisDistanceMM[],uint8_t pathOptimize,
     fAcceleration = 262144.0*(float)accelerationPrim/F_CPU;                                         // will overflow without float!
     accelerationDistance2 = 2.0*distance*slowestAxisPlateauTimeRepro*fullSpeed/((float)F_CPU);  // mm^2/s^2
     startSpeed = endSpeed = minSpeed = safeSpeed(drivingAxis);
-    if(startSpeed > (isXOrYMove() ? DIRECT_FEEDRATE_XY : isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E)
-#if FEATURE_DIGIT_FLOW_COMPENSATION
-                                      * g_nDigitFlowCompensation_feedmulti
-#endif // FEATURE_DIGIT_FLOW_COMPENSATION
-    ){
-        startSpeed = endSpeed = minSpeed = (isXOrYMove() ? DIRECT_FEEDRATE_XY : isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E)
-#if FEATURE_DIGIT_FLOW_COMPENSATION
-                                      * g_nDigitFlowCompensation_feedmulti
-#endif // FEATURE_DIGIT_FLOW_COMPENSATION
-        ;
+    if( startSpeed > (isXOrYMove() ? DIRECT_FEEDRATE_XY : isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E) ){
+        startSpeed = endSpeed = minSpeed = (isXOrYMove() ? DIRECT_FEEDRATE_XY : isZMove() ? DIRECT_FEEDRATE_Z : DIRECT_FEEDRATE_E);
     }
     // Can accelerate to full speed within the line
     if (startSpeed * startSpeed + accelerationDistance2 >= fullSpeed * fullSpeed)
@@ -713,20 +690,20 @@ void PrintLine::calculateDirectMove(float axisDistanceMM[],uint8_t pathOptimize,
     // p->vMax = 46000;
     // p->plateauN = (p->vMax*p->vMax/p->accelerationPrim)>>1;
 
-#if USE_ADVANCE
+ #if USE_ADVANCE
     if( !isXYZMove() || !isEPositiveMove() )
     {
-#ifdef ENABLE_QUADRATIC_ADVANCE
+  #ifdef ENABLE_QUADRATIC_ADVANCE
         advanceRate = 0;            // No head move or E move only or sucking filament back
         advanceFull = 0;
-#endif // ENABLE_QUADRATIC_ADVANCE
+  #endif // ENABLE_QUADRATIC_ADVANCE
         advanceL = 0;
     }
     else
     {
         float advlin = fabs(speedE) * Extruder::current->advanceL * 0.001 * Printer::axisStepsPerMM[E_AXIS];
         advanceL = (uint16_t)((65536L * advlin) / vMax); //advanceLscaled = (65536*vE*k2)/vMax
-#if ENABLE_QUADRATIC_ADVANCE
+  #if ENABLE_QUADRATIC_ADVANCE
         advanceFull = 65536 * Extruder::current->advanceK * speedE * speedE; // Steps*65536 at full speed
         long steps = (HAL::U16SquaredToU32(vMax)) / (accelerationPrim << 1); // v^2/(2*a) = steps needed to accelerate from 0-vMax
         advanceRate = advanceFull / steps;
@@ -734,25 +711,24 @@ void PrintLine::calculateDirectMove(float axisDistanceMM[],uint8_t pathOptimize,
             maxadv = (advanceFull >> 16);
             maxadvspeed = fabs(speedE);
         }
-#endif // ENABLE_QUADRATIC_ADVANCE
+  #endif // ENABLE_QUADRATIC_ADVANCE
         if(advlin > maxadv2) {
             maxadv2 = advlin;
             maxadvspeed = fabs(speedE);
         }
     }
-#endif // USE_ADVANCE
+ #endif // USE_ADVANCE
 
-    UI_MEDIUM;          // do check encoder
     updateTrapezoids();
     // how much steps on primary axis do we need to reach target feedrate
     // p->plateauSteps = (long) (((float)p->acceleration *0.5f / slowestAxisPlateauTimeRepro + p->vMin) *1.01f/slowestAxisPlateauTimeRepro);
 #else
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
+ #if USE_ADVANCE
+  #ifdef ENABLE_QUADRATIC_ADVANCE
     advanceRate = 0;    // No advance for constant speeds
     advanceFull = 0;
-#endif // ENABLE_QUADRATIC_ADVANCE
-#endif // USE_ADVANCE
+  #endif // ENABLE_QUADRATIC_ADVANCE
+ #endif // USE_ADVANCE
 #endif // RAMP_ACCELERATION
 
     // Make result permanent
@@ -855,20 +831,29 @@ void PrintLine::updateTrapezoids()
     //Retract: 
     if( previous->isEOnlyMove() != act->isEOnlyMove() )
     {
-        previous->maxJunctionSpeed = RMath::min(previous->endSpeed,act->startSpeed);  //https://github.com/repetier/Repetier-Firmware/issues/716#issuecomment-347000465
-        /*
-        if(act->isEOnlyMove())      previous->maxJunctionSpeed = previous->safeSpeed(previous->primaryAxis); //previous->endSpeed; //previous->endSpeed;
-        if(previous->isEOnlyMove()) previous->maxJunctionSpeed = act->safeSpeed(act->primaryAxis); //act->startSpeed; //previous->endSpeed;
-        */
+        previous->maxJunctionSpeed = previous->safeSpeed(previous->primaryAxis);
         previous->setEndSpeedFixed(true);
         act->setStartSpeedFixed(true);
         act->updateStepsParameter();
         firstLine->unblock();
         return;
-    }else{
-        computeMaxJunctionSpeed(previous, act);  // Set maximum junction speed if we have a real move before
+#if USE_ADVANCE
+    // if we start/stop extrusion we need to do so with lowest possible end speed
+    // or advance would leave a drolling extruder and can not adjust fast enough.
+    } else if(  Printer::isAdvanceActivated() && (previous->isEMove() != act->isEMove() || previous->isEPositiveMove() != act->isEPositiveMove() )  ) {
+        
+        previous->maxJunctionSpeed = previous->safeSpeed(previous->primaryAxis);
+        previous->setEndSpeedFixed(true);
+        act->setStartSpeedFixed(true);
+        act->updateStepsParameter();
+        firstLine->unblock();
+        return;
+#endif // USE_ADVANCE
     }
-    // Increase speed if possible neglecting current speed
+    
+    computeMaxJunctionSpeed(previous, act);  // Set maximum junction speed if we have a real move before
+
+        // Increase speed if possible neglecting current speed
     backwardPlanner(linesWritePos,first);
     
     // Reduce speed to reachable speeds
@@ -918,25 +903,6 @@ Speed from 100 to 200
 
 inline void PrintLine::computeMaxJunctionSpeed(PrintLine *previous,PrintLine *current)
 {
-#if USE_ADVANCE
-    if(Printer::isAdvanceActivated())
-    {
-        // if we start/stop extrusion we need to do so with lowest possible end speed
-        // or advance would leave a drolling extruder and can not adjust fast enough.
-        
-        //https://github.com/repetier/Repetier-Firmware/issues/716#issuecomment-347000465 @1)
-        if(previous->isEMove() != current->isEMove() && previous->isEMove()) //&& (previous->isXOrYMove() || current->isXOrYMove())
-        {
-            previous->setEndSpeedFixed(true);
-            current->setStartSpeedFixed(true);
-            previous->endSpeed = current->startSpeed = previous->maxJunctionSpeed = RMath::min(previous->endSpeed,current->startSpeed);
-            previous->invalidateParameter();
-            current->invalidateParameter();
-            return;
-        }
-    }
-#endif // USE_ADVANCE
-
     // if we are here we have to identical move types
     // either pure extrusion -> pure extrusion or
     // move -> move (with or without extrusion)
@@ -1174,7 +1140,7 @@ void PrintLine::waitForXFreeLines(uint8_t b)
     while(linesCount + b > MOVE_CACHE_SIZE)     // wait for a free entry in movement cache
     {
         //GCode::readFromSerial();
-        Commands::checkForPeriodicalActions();
+        Commands::checkForPeriodicalActions( Processing );
     }
 
 } // waitForXFreeLines
@@ -1293,9 +1259,7 @@ void PrintLine::arc(float *position, float *target, float *offset, float radius,
     {
         if((count & 4) == 0)
         {
-            //GCode::readFromSerial();
-            Commands::checkForPeriodicalActions();
-            UI_MEDIUM; // do check encoder
+            Commands::checkForPeriodicalActions( Processing );
         }
 
         if (count < N_ARC_CORRECTION)  //25 pieces
@@ -1536,20 +1500,29 @@ long PrintLine::performQueueMove()
 #endif // FEATURE_PAUSE_PRINTING
 
 #if FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
-                case TASK_ENABLE_Z_COMPENSATION:
+                case TASK_ENABLE_Z_COMPENSATION: //M3001 M3141
                 {
-                    Printer::enableCMPnow( );
+                    Printer::enableCMPnow();
                     removeCurrentLineForbidInterrupt();
                     return 1000;
                 }
 
-                case TASK_DISABLE_Z_COMPENSATION:
+                case TASK_DISABLE_Z_COMPENSATION: //M3000 M3140
                 {
                     // disable the z compensation
                     Printer::disableCMPnow(); //hier nicht unbedingt warten, das soll im fluss der queue einfach abgeschaltet werden. zu große abstände regelt die performPauseCheck 
                     removeCurrentLineForbidInterrupt();
                     return 1000;
                 }
+
+ #if FEATURE_SENSIBLE_PRESSURE
+                case TASK_ENABLE_SENSE_OFFSET: //M3909
+                {
+                    Printer::enableSenseOffsetnow();
+                    removeCurrentLineForbidInterrupt();
+                    return 1000;
+                }
+ #endif // FEATURE_SENSIBLE_PRESSURE
 #endif // FEATURE_HEAT_BED_Z_COMPENSATION || FEATURE_WORK_PART_Z_COMPENSATION
 
                 default:
@@ -1628,8 +1601,7 @@ long PrintLine::performQueueMove()
 long directError;
 long PrintLine::performDirectMove()
 {
-    if(direct.started == 0)
-    {
+    if(direct.started == 0){
         if(direct.isBlocked())   // This step is in computation - shouldn't happen
         {
             return 2000;
@@ -1644,23 +1616,21 @@ long PrintLine::performDirectMove()
             direct.updateStepsParameter();
         }
         Printer::vMaxReached = direct.vStart;
-        Printer::stepNumber=0;
+        Printer::stepNumber = 0;
         Printer::timer = 0;
         HAL::forbidInterrupts();
 
 #if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
+ #ifdef ENABLE_QUADRATIC_ADVANCE
         Printer::advanceExecuted = direct.advanceStart;
-#endif // ENABLE_QUADRATIC_ADVANCE
+ #endif // ENABLE_QUADRATIC_ADVANCE
 
-        direct.updateAdvanceSteps(direct.vStart,0,false);
+        direct.updateAdvanceSteps(direct.vStart, 0, false);
 #endif // USE_ADVANCE
-
-        return Printer::interval; // Wait an other 50% from last step to make the 100% full
+        return Printer::interval; //wait to next interrupt.
     }
 
     return performMove(&direct, false);
-
 } // performDirectMove
 
 
@@ -2145,7 +2115,7 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
     Printer::stepsPerTimerCall = 1;
     Printer::interval = move->fullInterval; // without RAMPS always use full speed
 #endif // RAMP_ACCELERATION
-    long interval = Printer::interval;
+    unsigned long interval = Printer::interval;
     if( move->stepsRemaining <= 0 || move->isNoMove() )  // line finished
     {
         if( move->stepsRemaining <= 0 ) //Wenn keine Steps mehr da, sollten alle Achsen die benutzt wurden wieder freigegeben werden. Bei Z ist der Sonderfall, dass die Z-Kompensation sich reinschummeln könnte.
@@ -2216,6 +2186,15 @@ long PrintLine::performMove(PrintLine* move, char forQueue)
         interval = Printer::interval = interval >> 1; // 50% of time to next call to do cur=0
         DEBUG_MEMORY;
     } // line finished
+
+#if FEATURE_DIGIT_FLOW_COMPENSATION
+    if(Printer::interval_mod){
+        //if we have to add some time because we need live adjusting then add it. But we should not calculate with * and / here so we have to prepare some delay. The preparation might be inprecise. So check it.
+        //min 50% speed -> max 200% interval.
+        interval *= Printer::interval_mod; //1024 == 100%
+        interval >>= 10; // geteilt durch 1024 = 2^10
+    }
+#endif // FEATURE_DIGIT_FLOW_COMPENSATION
 
     return interval;
 } // performMove
