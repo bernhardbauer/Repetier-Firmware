@@ -282,7 +282,7 @@ Overridden if EEPROM activated. */
 
 /** \brief Feedrate from halted extruder in mm/s
 Overridden if EEPROM activated. */
-#define EXT0_MAX_START_FEEDRATE             18
+#define EXT0_MAX_START_FEEDRATE             12
 
 /** \brief Acceleration in mm/s^2
 Overridden if EEPROM activated. */
@@ -440,7 +440,7 @@ Overridden if EEPROM activated. */
 
 /** \brief Feedrate from halted extruder in mm/s
 Overridden if EEPROM activated. */
-#define EXT1_MAX_START_FEEDRATE             18
+#define EXT1_MAX_START_FEEDRATE             12
 
 /** \brief Acceleration in mm/s^2
 Overridden if EEPROM activated. */
@@ -670,10 +670,9 @@ on this endstop. */
 /** \brief Sets direction of endstops when homing; 1=MAX, -1=MIN */
 #define X_HOME_DIR                          -1
 #define Y_HOME_DIR                          -1
-
-#if !FEATURE_MILLING_MODE
+//gets inverted when searching home dir in milling mode:
 #define Z_HOME_DIR                          -1
-#endif // !FEATURE_MILLING_MODE
+
 
 /** \brief If true, axis won't move to coordinates less than zero. */
 #define min_software_endstop_x              false
@@ -761,7 +760,6 @@ can set it on for safety. */
 #endif // FEATURE_CONFIGURABLE_Z_ENDSTOPS
 
 
-#define XYZ_DIRECTION_CHANGE_DELAY          250                                                 // [us]
 #define XYZ_STEPPER_HIGH_DELAY              100                                                 // [us]
 #define XYZ_STEPPER_LOW_DELAY               100                                                 // [us]
 #define LOOP_INTERVAL                       2000                                                // [ms]
@@ -847,9 +845,6 @@ own weight, so this is nearly never needed. */
 #define X_BACKLASH                          0
 #define Y_BACKLASH                          0
 
-/** \brief Comment this to disable ramp acceleration */
-#define RAMP_ACCELERATION                   1
-
 // ##########################################################################################
 // ##   configuration of the stepper drivers
 // ##########################################################################################
@@ -876,10 +871,6 @@ additional stepper interrupts with all it's overhead. As a result you can go as 
 40000Hz. STEP_DOUBLER_FREQUENCY should be in range 5000-12000 for RFx000 but 8000 is much for RF2000 (with ADVANCE?).*/
 #define STEP_DOUBLER_FREQUENCY              7000
 
-/** \brief If you need frequencies off more then 30000 you definitely need to enable this. If you have only 1/8 stepping
-enabling this may cause to stall your moves when 20000Hz is reached. */
-#define ALLOW_QUADSTEPPING                  true
-
 /** \brief If you reach STEP_DOUBLER_FREQUENCY the firmware will do 2 or 4 steps with nearly no delay. That can be too fast
 for some printers causing an early stall. */
 #define DOUBLE_STEP_DELAY                   1                                                   // [us] was 1, NIBBELS: Repetier set this to 0 when removing half stepping
@@ -887,18 +878,18 @@ for some printers causing an early stall. */
 /** \brief Number of moves we can cache in advance.
 This number of moves can be cached in advance. If you wan't to cache more, increase this. Especially on
 many very short moves the cache may go empty. The minimum value is 5. */
-#define MOVE_CACHE_SIZE                     16
+#define MOVE_CACHE_SIZE                     18
 
 /** \brief Low filled cache size.
 If the cache contains less then MOVE_CACHE_LOW segments, the time per segment is limited to LOW_TICKS_PER_MOVE clock cycles.
 If a move would be shorter, the feedrate will be reduced. This should prevent buffer underflows. Set this to 0 if you
 don't care about empty buffers during print. */
-#define MOVE_CACHE_LOW                      10
+#define MOVE_CACHE_LOW                      14
 
 /** \brief Cycles per move, if move cache is low.
 This value must be high enough, that the buffer has time to fill up. The problem only occurs at the beginning of a print or
 if you are printing many very short segments at high speed. Higher delays here allow higher values in PATH_PLANNER_CHECK_SEGMENTS. */
-#define LOW_TICKS_PER_MOVE                  250000
+#define LOW_TICKS_PER_MOVE                  300000
 
 
 // ##########################################################################################
@@ -965,7 +956,7 @@ it 0 as default. */
 Without a correct adjusted advance algorithm, you get blobs at points, where acceleration changes. The
 effect increases with speed and acceleration difference. Using the advance method decreases this effect.
 For more informations, read the wiki. */
-#define USE_ADVANCE 1
+#define USE_ADVANCE                         1
 
 /** \brief enables quadratic component.
 Uncomment to allow a quadratic advance dependency. Linear is the dominant value, so no real need
@@ -1063,7 +1054,7 @@ Above this value the z compensation will distribute the roughness of the surface
 #define HEAT_BED_SCAN_SLOW_STEP_DELAY_MS        100                                                                     // [ms]
 #define HEAT_BED_SCAN_IDLE_DELAY_MS             250                                                                     // [ms]
 
-#define HEAT_BED_SCAN_RETRIES                   3                                                                       // [-]
+#define HEAT_BED_SCAN_RETRIES                   5                                                                       // [-]
 #define HEAT_BED_SCAN_PRESSURE_READS            15                                                                      // [-]
 #define HEAT_BED_SCAN_PRESSURE_TOLERANCE        15                                                                      // [digits]
 #define HEAT_BED_SCAN_PRESSURE_READ_DELAY_MS    15                                                                      // [ms]
@@ -1221,10 +1212,5 @@ Above this value the z compensation will distribute the roughness of the surface
 #endif // FEATURE_FIND_Z_ORIGIN
 
 #endif // FEATURE_MILLING_MODE
-
-/** beta!!! Nibbels/PeterKA only!!! */
-#define FEATURE_CHECK_HOME 0
-/** beta!!! Nibbels/Wessix only!!! */
-#define FEATURE_SEE_DISPLAY 1
 
 #endif // RF1000_H
