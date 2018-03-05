@@ -264,26 +264,6 @@ void Extruder::initExtruder()
     SET_OUTPUT(EXT1_STEP_PIN);
 #endif // defined(EXT1_STEP_PIN) && EXT1_STEP_PIN>-1 && NUM_EXTRUDER>1
 
-#if defined(EXT2_STEP_PIN) && EXT2_STEP_PIN>-1 && NUM_EXTRUDER>2
-    SET_OUTPUT(EXT2_DIR_PIN);
-    SET_OUTPUT(EXT2_STEP_PIN);
-#endif // defined(EXT2_STEP_PIN) && EXT2_STEP_PIN>-1 && NUM_EXTRUDER>2
-
-#if defined(EXT3_STEP_PIN) && EXT3_STEP_PIN>-1 && NUM_EXTRUDER>3
-    SET_OUTPUT(EXT3_DIR_PIN);
-    SET_OUTPUT(EXT3_STEP_PIN);
-#endif // defined(EXT3_STEP_PIN) && EXT3_STEP_PIN>-1 && NUM_EXTRUDER>3
-
-#if defined(EXT4_STEP_PIN) && EXT4_STEP_PIN>-1 && NUM_EXTRUDER>4
-    SET_OUTPUT(EXT4_DIR_PIN);
-    SET_OUTPUT(EXT4_STEP_PIN);
-#endif // defined(EXT4_STEP_PIN) && EXT4_STEP_PIN>-1 && NUM_EXTRUDER>4
-
-#if defined(EXT5_STEP_PIN) && EXT5_STEP_PIN>-1 && NUM_EXTRUDER>5
-    SET_OUTPUT(EXT5_DIR_PIN);
-    SET_OUTPUT(EXT5_STEP_PIN);
-#endif // defined(EXT5_STEP_PIN) && EXT5_STEP_PIN>-1 && NUM_EXTRUDER>5
-
     for(i=0; i<NUM_EXTRUDER; ++i)
     {
         Extruder *act = &extruder[i];
@@ -1242,20 +1222,19 @@ void Extruder::disableAllHeater()
 } // disableAllHeater
 
 void TemperatureController::waitForTargetTemperature(uint8_t plus_temp_tolerance) {
-    if(targetTemperatureC < 30) return;
     if(Printer::debugDryrun()) return;
-    if(targetTemperatureC < currentTemperatureC){
-        UI_STATUS_UPD( UI_TEXT_COOLING_DOWN );
-    }else{
+    bool dirRising = targetTemperatureC > currentTemperatureC;
+    if(dirRising){
         UI_STATUS_UPD( UI_TEXT_HEATING_UP );
+    }else{
+        UI_STATUS_UPD( UI_TEXT_COOLING_DOWN );
     }
     g_uStartOfIdle = 0;
     while(true) {
         Commands::printTemperatures();
         Commands::checkForPeriodicalActions( WaitHeater );
-        if( fabs(targetTemperatureC - currentTemperatureC) <= TEMP_TOLERANCE + plus_temp_tolerance ) {
-            return;
-        }
+        if( fabs(targetTemperatureC - currentTemperatureC) <= TEMP_TOLERANCE + plus_temp_tolerance ) break;
+        if( !dirRising && currentTemperatureC < MAX_ROOM_TEMPERATURE ) break;
     }
     g_uStartOfIdle = HAL::timeInMilliseconds();
 }
@@ -1368,35 +1347,40 @@ KP = Ku * Maßzahl lt. Tabelle
 see also: http://www.mstarlabs.com/control/znrule.html
 */
                         switch(method){
-                            case 4: //PID Tyreus-Lyben ("lazy--" -> Heated Bed!)
-                                Kp = 0.4545f*Ku;      //1/2.2 KRkrit
-                                Ki = Kp/Tu/2.2f;        //2.2 Tkrit
-                                Kd = Kp*Tu/6.3f;      //1/6.3 Tkrit[/code]
-                                Com::printFLN(Com::tAPIDTyreusLyben);
-                            break;
-                            case 3: //PID no overshoot ("lazy-" -> Heated Bed!)
+                            case 4: { //PID Tyreus-Lyben ("lazy--" -> Heated Bed!)
+                               Kp = 0.4545f*Ku;      //1/2.2 KRkrit
+                               Ki = Kp/Tu/2.2f;        //2.2 Tkrit
+                               Kd = Kp*Tu/6.3f;      //1/6.3 Tkrit[/code]
+                               Com::printFLN(Com::tAPIDTyreusLyben);
+                               break;
+                            }
+                            case 3: { //PID no overshoot ("lazy-" -> Heated Bed!)
                                Kp = 0.2f*Ku;          //0.2 KRkrit
                                Ki = 2.0f*Kp/Tu;       //0.5 Tkrit
                                Kd = Kp*Tu/3.0f;       //0.333 Tkrit
                                Com::printFLN(Com::tAPIDNone);
-                            break;
-                            case 2: //PID some overshoot
+                               break;
+                            }
+                            case 2: { //PID some overshoot
                                Kp = 0.33f*Ku;         //0.33 KRkrit
                                Ki = 2.0f*Kp/Tu;       //0.5 Tkrit
                                Kd = Kp*Tu/3.0f;       //0.333 Tkrit
                                Com::printFLN(Com::tAPIDSome);
-                            break;
-                            case 1: //PID Pessen Integral Rule ("dynamic++" -> fast Hotend!)
+                               break;
+                            }
+                            case 1: { //PID Pessen Integral Rule ("dynamic++" -> fast Hotend!)
                                Kp = 0.7f*Ku;          //0.7 KRkrit
                                Ki = 2.5f*Kp/Tu;       //0.4 Tkrit
                                Kd = Kp*Tu*3.0f/20.0f; //0.15 Tkrit
                                Com::printFLN(Com::tAPIDPessen);
-                            break;
-                            default: //PID classic Ziegler-Nichols  ("dynamic+" -> Hotend!)
+                               break;
+                            }
+                            default: { //PID classic Ziegler-Nichols  ("dynamic+" -> Hotend!)
                                Kp = 0.6f*Ku;          //0.6 KRkrit
                                Ki = 2.0f*Kp/Tu;       //0.5 Tkrit
                                Kd = Kp*Tu/8.0f;       //0.125 Tkrit
                                Com::printFLN(Com::tAPIDClassic);
+                            }
                         }
                         Com::printFLN(Com::tAPIDKp,Kp);
                         Com::printFLN(Com::tAPIDKi,Ki);
@@ -1504,27 +1488,6 @@ const char ext1_select_cmd[] PROGMEM = EXT1_SELECT_COMMANDS;
 const char ext1_deselect_cmd[] PROGMEM = EXT1_DESELECT_COMMANDS;
 #endif // NUM_EXTRUDER>1
 
-#if NUM_EXTRUDER>2
-const char ext2_select_cmd[] PROGMEM = EXT2_SELECT_COMMANDS;
-const char ext2_deselect_cmd[] PROGMEM = EXT2_DESELECT_COMMANDS;
-#endif // NUM_EXTRUDER>2
-
-#if NUM_EXTRUDER>3
-const char ext3_select_cmd[] PROGMEM = EXT3_SELECT_COMMANDS;
-const char ext3_deselect_cmd[] PROGMEM = EXT3_DESELECT_COMMANDS;
-#endif // NUM_EXTRUDER>3
-
-#if NUM_EXTRUDER>4
-const char ext4_select_cmd[] PROGMEM = EXT4_SELECT_COMMANDS;
-const char ext4_deselect_cmd[] PROGMEM = EXT4_DESELECT_COMMANDS;
-#endif // NUM_EXTRUDER>4
-
-#if NUM_EXTRUDER>5
-const char ext5_select_cmd[] PROGMEM = EXT5_SELECT_COMMANDS;
-const char ext5_deselect_cmd[] PROGMEM = EXT5_DESELECT_COMMANDS;
-#endif // NUM_EXTRUDER>5
-
-
 Extruder extruder[NUM_EXTRUDER] =
 {
 #if NUM_EXTRUDER>0
@@ -1591,138 +1554,6 @@ Extruder extruder[NUM_EXTRUDER] =
 #endif // FEATURE_PAUSE_PRINTING
     }
 #endif // NUM_EXTRUDER>1
-
-#if NUM_EXTRUDER>2
-    ,{
-        2,EXT2_X_OFFSET,EXT2_Y_OFFSET,EXT2_Z_OFFSET,EXT2_STEPS_PER_MM,EXT2_ENABLE_PIN,EXT2_ENABLE_ON,
-        EXT2_MAX_FEEDRATE,EXT2_MAX_ACCELERATION,EXT2_MAX_START_FEEDRATE,0,EXT2_WATCHPERIOD
-        ,EXT2_WAIT_RETRACT_TEMP,EXT2_WAIT_RETRACT_UNITS,0
-
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT2_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT2_ADVANCE_L,EXT2_ADVANCE_BACKLASH_STEPS
-#endif // USE_ADVANCE
-
-        ,{
-            2,EXT2_TEMPSENSOR_TYPE,EXT2_SENSOR_INDEX,0,0,0,0,
-#if FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-#endif // FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-            0,EXT2_PID_INTEGRAL_DRIVE_MAX,EXT2_PID_INTEGRAL_DRIVE_MIN,EXT2_PID_P,EXT2_PID_I,EXT2_PID_D,EXT2_PID_MAX,0,0,
-            0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-            0
-         }
-        ,ext2_select_cmd,ext2_deselect_cmd,EXT2_EXTRUDER_COOLER_SPEED,0
-#if STEPPER_ON_DELAY
-        , '\x0'
-#endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
-#if FEATURE_PAUSE_PRINTING
-        ,0 //uint8_t paused
-#endif // FEATURE_PAUSE_PRINTING
-    }
-#endif // NUM_EXTRUDER>2
-
-#if NUM_EXTRUDER>3
-    ,{
-        3,EXT3_X_OFFSET,EXT3_Y_OFFSET,EXT3_Z_OFFSET,EXT3_STEPS_PER_MM,EXT3_ENABLE_PIN,EXT3_ENABLE_ON,
-        EXT3_MAX_FEEDRATE,EXT3_MAX_ACCELERATION,EXT3_MAX_START_FEEDRATE,0,EXT3_WATCHPERIOD
-        ,EXT3_WAIT_RETRACT_TEMP,EXT3_WAIT_RETRACT_UNITS,0
-
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT3_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT3_ADVANCE_L,EXT3_ADVANCE_BACKLASH_STEPS
-#endif // USE_ADVANCE
-
-        ,{
-            3,EXT3_TEMPSENSOR_TYPE,EXT3_SENSOR_INDEX,0,0,0,0,
-#if FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-#endif // FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-            0,EXT3_PID_INTEGRAL_DRIVE_MAX,EXT3_PID_INTEGRAL_DRIVE_MIN,EXT3_PID_P,EXT3_PID_I,EXT3_PID_D,EXT3_PID_MAX,0,0,
-            0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-            0
-         }
-        ,ext3_select_cmd,ext3_deselect_cmd,EXT3_EXTRUDER_COOLER_SPEED,0
-#if STEPPER_ON_DELAY
-        , '\x0'
-#endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
-#if FEATURE_PAUSE_PRINTING
-        ,0 //uint8_t paused
-#endif // FEATURE_PAUSE_PRINTING
-    }
-#endif // NUM_EXTRUDER>3
-
-#if NUM_EXTRUDER>4
-    ,{
-        4,EXT4_X_OFFSET,EXT4_Y_OFFSET,EXT4_Z_OFFSET,EXT4_STEPS_PER_MM,EXT4_ENABLE_PIN,EXT4_ENABLE_ON,
-        EXT4_MAX_FEEDRATE,EXT4_MAX_ACCELERATION,EXT4_MAX_START_FEEDRATE,0,EXT4_WATCHPERIOD
-        ,EXT4_WAIT_RETRACT_TEMP,EXT4_WAIT_RETRACT_UNITS,0
-
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT4_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT4_ADVANCE_L,EXT4_ADVANCE_BACKLASH_STEPS
-#endif // USE_ADVANCE
-
-        ,{
-            4,EXT4_TEMPSENSOR_TYPE,EXT4_SENSOR_INDEX,0,0,0,0,
-#if FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-#endif // FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-            0,EXT4_PID_INTEGRAL_DRIVE_MAX,EXT4_PID_INTEGRAL_DRIVE_MIN,EXT4_PID_P,EXT4_PID_I,EXT4_PID_D,EXT4_PID_MAX,0,0,
-            0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-            0
-         }
-        ,ext4_select_cmd,ext4_deselect_cmd,EXT4_EXTRUDER_COOLER_SPEED,0
-#if STEPPER_ON_DELAY
-        , '\x0'
-#endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
-#if FEATURE_PAUSE_PRINTING
-        ,0 //uint8_t paused
-#endif // FEATURE_PAUSE_PRINTING
-    }
-#endif // NUM_EXTRUDER>4
-
-#if NUM_EXTRUDER>5
-    ,{
-        5,EXT5_X_OFFSET,EXT5_Y_OFFSET,EXT5_Z_OFFSET,EXT5_STEPS_PER_MM,EXT5_ENABLE_PIN,EXT5_ENABLE_ON,
-        EXT5_MAX_FEEDRATE,EXT5_MAX_ACCELERATION,EXT5_MAX_START_FEEDRATE,0,EXT5_WATCHPERIOD
-        ,EXT5_WAIT_RETRACT_TEMP,EXT5_WAIT_RETRACT_UNITS,0
-
-#if USE_ADVANCE
-#ifdef ENABLE_QUADRATIC_ADVANCE
-        ,EXT5_ADVANCE_K
-#endif // ENABLE_QUADRATIC_ADVANCE
-        ,EXT5_ADVANCE_L,EXT5_ADVANCE_BACKLASH_STEPS
-#endif // USE_ADVANCE
-
-        ,{
-            5,EXT5_TEMPSENSOR_TYPE,EXT5_SENSOR_INDEX,0,0,0,0,
-#if FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-#endif // FEATURE_HEAT_BED_TEMP_COMPENSATION
-            0,
-            0,EXT5_PID_INTEGRAL_DRIVE_MAX,EXT5_PID_INTEGRAL_DRIVE_MIN,EXT5_PID_P,EXT5_PID_I,EXT5_PID_D,EXT5_PID_MAX,0,0,
-            0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-            0
-         }
-        ,ext5_select_cmd,ext5_deselect_cmd,EXT5_EXTRUDER_COOLER_SPEED,0
-#if STEPPER_ON_DELAY
-        , '\x0'
-#endif // STEPPER_ON_DELAY by Nibbels gegen xtruder.cpp:1620:1: warning: missing initializer for member 'Extruder::enabled'
-#if FEATURE_PAUSE_PRINTING
-        ,0 //uint8_t paused
-#endif // FEATURE_PAUSE_PRINTING
-    }
-#endif // NUM_EXTRUDER>5
 };
 
 #if HAVE_HEATED_BED
@@ -1771,22 +1602,6 @@ TemperatureController *tempController[NUM_TEMPERATURE_LOOPS] =
 #if NUM_EXTRUDER>1
     ,&extruder[1].tempControl
 #endif // NUM_EXTRUDER>1
-
-#if NUM_EXTRUDER>2
-    ,&extruder[2].tempControl
-#endif // NUM_EXTRUDER>2
-
-#if NUM_EXTRUDER>3
-    ,&extruder[3].tempControl
-#endif // NUM_EXTRUDER>3
-
-#if NUM_EXTRUDER>4
-    ,&extruder[4].tempControl
-#endif // NUM_EXTRUDER>4
-
-#if NUM_EXTRUDER>5
-    ,&extruder[5].tempControl
-#endif // NUM_EXTRUDER>5
 
 #if HAVE_HEATED_BED
 #if NUM_EXTRUDER==0

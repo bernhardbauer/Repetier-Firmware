@@ -218,10 +218,6 @@ bool            g_nDigitZCompensationDigits_active = true;
 unsigned long   uLastZPressureTime_IgnoreUntil = 0;
 #endif // FEATURE_EMERGENCY_STOP_ALL
 
-#if FEATURE_STARTLINE
-volatile unsigned char g_nDrawStartLineStatus = 0;
-#endif // FEATURE_STARTLINE
-
 #if FEATURE_FIND_Z_ORIGIN
 volatile unsigned char g_nFindZOriginStatus = 0;
 long            g_nZOriginPosition[3]       = { 0, 0, 0 };
@@ -462,7 +458,7 @@ void startHeatBedScan( void )
     }
     else
     {
-        if( PrintLine::linesCount )
+        if( Printer::isPrinting() )
         {
             // there is some printing in progress at the moment - do not start the heat bed scan in this case
             if( Printer::debugErrors() )
@@ -476,6 +472,8 @@ void startHeatBedScan( void )
         {
             // start the heat bed scan
             g_nHeatBedScanStatus = 1;
+            g_abortZScan = 0; //dont kill job on start
+            g_retryZScan = 0;
             BEEP_START_HEAT_BED_SCAN
         }
     }
@@ -544,8 +542,11 @@ void scanHeatBed( void )
             Com::printFLN( PSTR( "scan aborted" ) );
         }
 
-        UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_ABORTED );
+        //UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_ABORTED );
+        g_uStartOfIdle = HAL::timeInMilliseconds();
+        
         BEEP_ABORT_HEAT_BED_SCAN
+        showError( PSTR(UI_TEXT_HEAT_BED_SCAN_ABORTED) );
 
         // restore the compensation values from the EEPROM
         if( loadCompensationMatrix( 0 ) )
@@ -558,6 +559,8 @@ void scanHeatBed( void )
         g_nLastZScanZPosition = 0;
         g_retryZScan          = 0;
         g_retryStatus         = 0;
+        
+        
         return;
     }
 
@@ -597,12 +600,14 @@ void scanHeatBed( void )
         {
             case 1:
             {
+                g_uStartOfIdle = 0;
                 g_scanStartTime    = HAL::timeInMilliseconds();
                 g_abortZScan       = 0;
 #if DEBUG_HEAT_BED_SCAN
                 nContactPressure   = 0;
 #endif // DEBUG_HEAT_BED_SCAN
                 g_retryStatus      = 0;
+                g_nLastZScanZPosition = 0; //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht.
 
                 if( Printer::debugInfo() )
                 {
@@ -745,7 +750,7 @@ void scanHeatBed( void )
 
                 // start at the home position
                 Printer::homeAxis( true, true, true );
-                Commands::waitUntilEndOfAllMoves();
+                Commands::waitUntilEndOfAllMoves(); //scanHeatBed
 
                 // move a bit away from the heat bed in order to achieve better measurements in case of hardware configurations where the extruder is very close to the heat bed after the z-homing
                 moveZ( HEAT_BED_SCAN_Z_START_STEPS );
@@ -1960,8 +1965,11 @@ void scanHeatBed( void )
                     Com::printF( Com::tscanHeatBed );
                     Com::printFLN( PSTR( "the scan has been completed" ) );
                 }
-                UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_DONE );
+                //UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_DONE );
+                g_uStartOfIdle = HAL::timeInMilliseconds(); //go to printer ready and ignore status
+                
                 BEEP_STOP_HEAT_BED_SCAN
+                showInformation( PSTR(UI_TEXT_HEAT_BED_SCAN_DONE), (void*)ui_text_saving_success, PSTR(UI_TEXT_OK) ); //tell user the scan was a success
 
                 g_nHeatBedScanStatus = 0;
 
@@ -1990,7 +1998,7 @@ void startAlignExtruders( void )
     }
     else
     {
-        if( PrintLine::linesCount )
+        if( Printer::isPrinting() )
         {
             // there is some printing in progress at the moment - do not start to align the extruders in this case
             if( Printer::debugErrors() )
@@ -2025,6 +2033,7 @@ void startAlignExtruders( void )
         // we are ready to align the extruders at the current x and y position with the current temperature
         // the user can choose the x and y position as well as the to-be-used temperatures of the extruders
         g_nAlignExtrudersStatus = 100;
+        g_abortZScan = 0; //dont kill job on start
     }
 } // startAlignExtruders
 
@@ -2058,10 +2067,12 @@ void alignExtruders( void )
             Com::printFLN( PSTR( "alignExtruders(): aborted" ) );
         }
 
-        UI_STATUS_UPD( UI_TEXT_ALIGN_EXTRUDERS_ABORTED );
+        showError( PSTR(UI_TEXT_ALIGN_EXTRUDERS_ABORTED) );
         BEEP_ABORT_ALIGN_EXTRUDERS
 
         g_nAlignExtrudersStatus  = 0;
+        g_uStartOfIdle = HAL::timeInMilliseconds();
+
         return;
     }
 
@@ -2085,8 +2096,9 @@ void alignExtruders( void )
                 g_lastScanTime          = HAL::timeInMilliseconds();
                 g_scanRetries           = HEAT_BED_SCAN_RETRIES;
                 g_retryStatus           = 105;
+                g_nLastZScanZPosition   = 0; //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht.
                 g_nAlignExtrudersStatus = 110;
-
+                g_uStartOfIdle = 0;
 #if DEBUG_HEAT_BED_SCAN == 2
                 if( Printer::debugInfo() ) Com::printFLN( PSTR( "alignExtruders(): 100 -> 110" ) );
 #endif // DEBUG_HEAT_BED_SCAN == 2
@@ -2209,8 +2221,10 @@ void alignExtruders( void )
                 {
                     Com::printFLN( PSTR( "alignExtruders(): the alignment has been completed" ) );
                 }
-                UI_STATUS_UPD( UI_TEXT_ALIGN_EXTRUDERS_DONE );
+
+                showInformation( PSTR(UI_TEXT_ALIGN_EXTRUDERS_DONE) );
                 BEEP_STOP_ALIGN_EXTRUDERS
+                g_uStartOfIdle = HAL::timeInMilliseconds();
 
                 g_nAlignExtrudersStatus = 0;
 
@@ -2246,33 +2260,17 @@ void startZOScan( bool automatrixleveling )
     if( g_nZOSScanStatus )
     {
         // abort the heat bed scan
-        if( Printer::debugInfo() )
-        {
-            Com::printFLN( PSTR( "ZOS scan cancelled" ) );
-        }
+        Com::printFLN( PSTR( "ZOS cancelled" ) );
         abortSearchHeatBedZOffset(false);
     }
     else
     {
-        if( PrintLine::linesCount )
-        {
-            // there is some printing in progress at the moment - do not start the heat bed scan in this case
-            if( Printer::debugErrors() )
-            {
-                Com::printFLN( Com::tPrintingIsInProcessError );
-            }
-            showError( (void*)ui_text_heat_bed_scan, (void*)ui_text_operation_denied );
-        }
-        else
-        {
-            Com::printFLN( PSTR( "ZOS started" ) );
-            BEEP_START_HEAT_BED_SCAN
-            g_nZOSScanStatus = 1;
-            // start the heat bed scan
-            g_abortZScan = 0;
-            g_retryZScan = 0;
-            if(automatrixleveling) g_ZOS_Auto_Matrix_Leveling_State = 1; //aktiviert besonderer modus, bei dem der ZOffsetScan mehrfach in schleife scant und ein schiefes Bett geraderückt, aber die Welligkeit des ursprünglichen HBS behält.
-        }
+        Com::printFLN( PSTR( "ZOS started" ) );
+        BEEP_START_HEAT_BED_SCAN
+        g_nZOSScanStatus = 1;
+        // start the heat bed scan
+        g_abortZScan = 0; //dont kill job on start
+        if(automatrixleveling) g_ZOS_Auto_Matrix_Leveling_State = 1; //aktiviert besonderer modus, bei dem der ZOffsetScan mehrfach in schleife scant und ein schiefes Bett geraderückt, aber die Welligkeit des ursprünglichen HBS behält.
     }
 } // startZOScan
 
@@ -2294,8 +2292,6 @@ void searchZOScan( void )
     
     if(!g_nZOSScanStatus) return;
     
-    g_uStartOfIdle = 0; //zeige nicht gleich wieder Printer Ready an.
-    
     if(g_nHeatBedScanStatus 
 #if FEATURE_WORK_PART_Z_COMPENSATION
         || g_nWorkPartScanStatus
@@ -2310,12 +2306,15 @@ void searchZOScan( void )
         {
             case 1:
             {
+                g_retryZScan = 0;
+                g_uStartOfIdle = 0; //zeige nicht gleich wieder Printer Ready an.
                 Com::printFLN( PSTR( "ZOS init" ) ); 
                 // when the heat bed Z offset is searched, the z-compensation must be disabled
                 g_nZOSScanStatus = 2;
                 g_min_nZScanZPosition = HEAT_BED_SCAN_Z_START_STEPS; //nur nutzen wenn kleiner.
                 g_scanRetries = 0; // never retry   TODO allow retries?
                 g_abortZScan = 0;  // will be set in case of error inside moveZUpFast/Slow
+                g_nLastZScanZPosition = 0; //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht.
                 break;
             }
             case 2:
@@ -2430,7 +2429,6 @@ void searchZOScan( void )
 
                 // start at the home position
                 Printer::homeAxis( true, true, true ); //home z resets ZCMP
-                Commands::waitUntilEndOfAllMoves();
                 g_nZOSScanStatus = 3;
                 break;
             }
@@ -2813,10 +2811,11 @@ void searchZOScan( void )
             {
                 g_nZOSScanStatus = 0;
                 if( calculateZScrewCorrection() ){
-                   UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_OFFSET_MIN );
                    showMyPage( (void*)ui_text_heat_bed_zoffset_search_status, (void*)ui_text_heat_bed_zoffset_fix_z1, (void*)ui_text_heat_bed_zoffset_fix_z2, (void*)ui_text_statusmsg );
                    g_nAutoReturnMessage = true;
-                   g_nAutoReturnTime=HAL::timeInMilliseconds()+20000;
+                   g_nAutoReturnTime    = HAL::timeInMilliseconds()+30000;
+                   //UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_OFFSET_MIN );
+                   g_uStartOfIdle = HAL::timeInMilliseconds(); //go to printer ready/ignore status
                 }else{
                    UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_ABORTED );
                 }
@@ -2842,6 +2841,7 @@ void abortSearchHeatBedZOffset( bool reloadMatrix )
     g_nZOSScanStatus = 0;
     g_retryZScan = 0;
     g_abortZScan = 0;
+    g_nLastZScanZPosition = 0;
 
     // the search has been aborted
     UI_STATUS_UPD( UI_TEXT_HEAT_BED_SCAN_ABORTED );
@@ -3161,7 +3161,7 @@ void startViscosityTest( int maxdigits = 10000, float maxfeedrate = 5.0f, float 
     //drive up the Bed 100mm -> if to low then filament will pile up to fast on the z-plattform
     Printer::moveToReal( IGNORE_COORDINATE, IGNORE_COORDINATE, 100 , IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
     Printer::moveToReal( 0, 0, IGNORE_COORDINATE , IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
-    Commands::waitUntilEndOfAllMoves();
+    Commands::waitUntilEndOfAllMoves(); //startViscosityTest
 
     //wait and test idle pressure
     HAL::delayMilliseconds( HEAT_BED_SCAN_DELAY );
@@ -3331,50 +3331,31 @@ void configureMANUAL_STEPS_Z( int8_t increment )
 /**************************************************************************************************************************************/
 
 
-short testExtruderTemperature( void )
+short testExtruderTemperature( void ) //Funktion ist speziell für HBS Scan.
 {
-    if( Extruder::current->tempControl.targetTemperatureC > 40 )
+    if( Extruder::current->tempControl.targetTemperatureC > MAX_ROOM_TEMPERATURE )
     {
         // we have to wait until the target temperature is reached
         if( (Extruder::current->tempControl.currentTemperatureC + TEMP_TOLERANCE) < Extruder::current->tempControl.targetTemperatureC )
         {
             // wait until the extruder has reached its target temperature
-            if( Printer::debugInfo() )
-            {
-                Com::printF( PSTR( "heating: " ), Extruder::current->tempControl.currentTemperatureC, 1 );
-                Com::printF( PSTR( " C / " ), Extruder::current->tempControl.targetTemperatureC, 1 );
-                Com::printFLN( PSTR( " C" ) );
-            }
-
             UI_STATUS_UPD( UI_TEXT_HEATING_UP );
             return -1;
         }
         if( (Extruder::current->tempControl.currentTemperatureC - TEMP_TOLERANCE) > Extruder::current->tempControl.targetTemperatureC )
         {
             // wait until the extruder has reached its target temperature
-            if( Printer::debugInfo() )
-            {
-                Com::printF( PSTR( "cooling: " ), Extruder::current->tempControl.currentTemperatureC, 1 );
-                Com::printF( PSTR( " C / " ), Extruder::current->tempControl.targetTemperatureC, 1 );
-                Com::printFLN( PSTR( " C" ) );
-            }
-
             UI_STATUS_UPD( UI_TEXT_COOLING_DOWN );
             return -1;
         }
+        /* else (inside temp_tolerance), return 0, dont wait anymore */
     }
     else
     {
         // we have to wait until the current temperatur is below something which would be too warm
-        if( Extruder::current->tempControl.currentTemperatureC > 65 )
+        if( Extruder::current->tempControl.currentTemperatureC > MAX_ROOM_TEMPERATURE + 20 /*orig: 65+*/ )
         {
             // wait until the extruder has reached its target temperature
-            if( Printer::debugInfo() )
-            {
-                Com::printF( PSTR( "cooling: " ),Extruder::current->tempControl.currentTemperatureC, 1 );
-                Com::printFLN( PSTR( " C" ) );
-            }
-
             UI_STATUS_UPD( UI_TEXT_COOLING_DOWN );
             return -1;
         }
@@ -3386,51 +3367,35 @@ short testExtruderTemperature( void )
 } // testExtruderTemperature
 
 
-short testHeatBedTemperature( void )
+short testHeatBedTemperature( void ) //Funktion ist speziell für HBS Scan.
 {
 #if HAVE_HEATED_BED
-    if( heatedBedController.targetTemperatureC > 40 )
+    if( heatedBedController.targetTemperatureC > (MAX_ROOM_TEMPERATURE >= PRECISE_HEAT_BED_SCAN_BED_TEMP_PLA - TEMP_TOLERANCE 
+                                                                    ? PRECISE_HEAT_BED_SCAN_BED_TEMP_PLA - TEMP_TOLERANCE 
+                                                                    : MAX_ROOM_TEMPERATURE) ) ) 
+                                                                    /* Evtl. sollte man abfangen, fallst die MAX_ROOM_TEMPERATURE hier höher als die PLA-Scan-TEMP eingestellt ist. Darum der Ternary */
     {
         // we have to wait until the target temperature is reached
         if( (Extruder::getHeatedBedTemperature() + TEMP_TOLERANCE) < heatedBedController.targetTemperatureC )
         {
             // wait until the heat bed has reached its target temperature
-            if( Printer::debugInfo() )
-            {
-                Com::printF( PSTR( "testHeatBedTemperature(): heating: " ), Extruder::getHeatedBedTemperature(), 1 );
-                Com::printF( PSTR( " C / " ), heatedBedController.targetTemperatureC, 1 );
-                Com::printFLN( PSTR( " C" ) );
-            }
-
             UI_STATUS_UPD( UI_TEXT_HEATING_UP );
             return -1;
         }
         if( (Extruder::getHeatedBedTemperature() - TEMP_TOLERANCE) > heatedBedController.targetTemperatureC )
         {
             // wait until the heat bed has reached its target temperature
-            if( Printer::debugInfo() )
-            {
-                Com::printF( PSTR( "testHeatBedTemperature(): cooling: " ), Extruder::getHeatedBedTemperature(), 1 );
-                Com::printF( PSTR( " C / " ), heatedBedController.targetTemperatureC, 1 );
-                Com::printFLN( PSTR( " C" ) );
-            }
-
-            UI_STATUS_UPD( UI_TEXT_HEATING_UP );
+            UI_STATUS_UPD( UI_TEXT_COOLING_DOWN );
             return -1;
         }
+        /* else (inside temp_tolerance), return 0, dont wait anymore */
     }
     else
     {
         // we have to wait until the current temperatur is below something which would be too warm
-        if( Extruder::getHeatedBedTemperature() > 50 )
+        if( Extruder::getHeatedBedTemperature() > MAX_ROOM_TEMPERATURE + 10 /*orig: 50+*/ )
         {
             // wait until the heat bed has reached its target temperature
-            if( Printer::debugInfo() )
-            {
-                Com::printF( PSTR( "testHeatBedTemperature(): cooling: " ), Extruder::getHeatedBedTemperature(), 1 );
-                Com::printFLN( PSTR( " C" ) );
-            }
-
             UI_STATUS_UPD( UI_TEXT_COOLING_DOWN );
             return -1;
         }
@@ -3439,7 +3404,6 @@ short testHeatBedTemperature( void )
 
     // at this point we have reached the proper temperature
     return 0;
-
 } // testHeatBedTemperature
 
 long getZMatrixDepth(long x, long y){
@@ -3739,6 +3703,8 @@ void findZOrigin( void )
 
         UI_STATUS_UPD( UI_TEXT_FIND_Z_ORIGIN_ABORTED );
         g_nFindZOriginStatus = 0;
+        
+        g_uStartOfIdle = HAL::timeInMilliseconds();
         return;
     }
 
@@ -3756,6 +3722,7 @@ void findZOrigin( void )
             case 1:
             {
                 g_abortZScan               = 0;
+                //g_nLastZScanZPosition      = 0; //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht. //brauche ich nicht bei findzorigin
                 g_nZOriginPosition[Z_AXIS] = 0;
 
                 if( Printer::debugInfo() )
@@ -3946,7 +3913,7 @@ void startWorkPartScan( char nMode )
     }
     else
     {
-        if( PrintLine::linesCount )
+        if( Printer::isPrinting() )
         {
             // there is some printing in progress at the moment - do not start the heat bed scan in this case
             if( Printer::debugErrors() )
@@ -4045,6 +4012,8 @@ void scanWorkPart( void )
         g_nWorkPartScanStatus = 0;
         g_nLastZScanZPosition = 0;
         g_retryZScan          = 0;
+        
+        g_uStartOfIdle = HAL::timeInMilliseconds();
         return;
     }
 
@@ -4069,6 +4038,7 @@ void scanWorkPart( void )
                 g_scanStartTime    = HAL::timeInMilliseconds();
                 g_abortZScan       = 0;
                 nContactPressure   = 0;
+                g_nLastZScanZPosition = 0; //sodass dass bei mehreren scans nicht die letzte position als abstands limit feststeht.
 
                 if( Printer::debugInfo() )
                 {
@@ -5135,7 +5105,12 @@ void moveZDownSlow(uint8_t acuteness)
             Com::printFLN( PSTR( "Z = " ), g_nZScanZPosition*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
         }
-        if( g_nLastZScanZPosition && abs(g_nZScanZPosition - g_nLastZScanZPosition) > g_nScanHeatBedDownFastSteps*2 )
+        if( g_nLastZScanZPosition && abs(g_nZScanZPosition - g_nLastZScanZPosition) > 
+                g_nScanHeatBedDownFastSteps*( 2 + /*nach wiederholungen etwas mehr zulassen. krumme keramik braucht wohl mehr ... */
+                                            (g_scanRetries < HEAT_BED_SCAN_RETRIES ? /* nur beachten bei wiederholung */
+                                                            (HEAT_BED_SCAN_RETRIES - g_scanRetries <= 2 ? HEAT_BED_SCAN_RETRIES - g_scanRetries : 2) /* nie mehr als 0.2 bzw 2x draufschlagen, das reicht sicher - sonst ist es ein anderer fehler. */
+                                                            : 0)
+                                            ) )
         {
             Com::printFLN( PSTR( "dZ_lastpos = " ), abs(g_nZScanZPosition - g_nLastZScanZPosition)*Printer::invAxisStepsPerMM[Z_AXIS] );
             error = true;
@@ -6593,12 +6568,7 @@ void loopRF( void ) //wird so aufgerufen, dass es ein ~100ms takt sein sollte.
                         (nPressure > g_nEmergencyPauseDigitsMax) )
                     {
                         // the pressure is outside the allowed range, we must perform the emergency pause
-                        if( Printer::debugErrors() )
-                        {
-                            Com::printF( PSTR( "emergency pause: " ), nPressure );
-                            Com::printFLN( PSTR( " / " ), PrintLine::linesCount );
-                        }
-
+                        Com::printF( PSTR( "emergency pause: " ), nPressure );
                         showWarning( (void*)ui_text_emergency_pause );
                         pausePrint();
                         pausePrint();
@@ -6693,30 +6663,54 @@ void loopRF( void ) //wird so aufgerufen, dass es ein ~100ms takt sein sollte.
                 }
 #endif // FEATURE_MILLING_MODE
 
+#if FEATURE_PAUSE_PRINTING
+                if( g_pauseStatus != PAUSE_STATUS_NONE )
+                {
+                    // the printing is paused at the moment
+                    InterruptProtectedBlock noInts;
+
+                    g_uPauseTime  = 0;
+                    g_pauseStatus = PAUSE_STATUS_NONE;
+                    g_pauseMode   = PAUSE_MODE_NONE;
+
+                    g_nContinueSteps[X_AXIS] = 0;
+                    g_nContinueSteps[Y_AXIS] = 0;
+                    g_nContinueSteps[Z_AXIS] = 0;
+                    g_nContinueSteps[E_AXIS] = 0;
+
+                    noInts.unprotect();
+                }
+                Printer::setMenuMode(MENU_MODE_PAUSED,false);
+#endif // FEATURE_PAUSE_PRINTING
+
+                //unaufgeräumtes beenden: Es wird sowieso der Stepper deaktiviert.
+                g_nZOSScanStatus = 0;
+                g_nHeatBedScanStatus = 0;
+                //g_nAlignExtrudersStatus = 0;
+
+#if FEATURE_FIND_Z_ORIGIN
+                g_nFindZOriginStatus = 0;
+#endif // FEATURE_FIND_Z_ORIGIN
+#if FEATURE_MILLING_MODE && FEATURE_WORK_PART_Z_COMPENSATION
+                g_nWorkPartScanStatus = 0;
+#endif // FEATURE_MILLING_MODE && FEATURE_WORK_PART_Z_COMPENSATION
+
+                Com::printFLN(PSTR("Stop complete"));
+                Printer::setPrinting(false);
+
+                BEEP_STOP_PRINTING
+
                 g_uBlockCommands = HAL::timeInMilliseconds();
             }
         }
     }
-
-    if( g_uBlockCommands > 1 ) //=1 scheint zu blocken, dann muss StopTIme aktiv sein und hier drüber erst eine Uhrzeit reinsetzen.
+    if( g_uBlockCommands > 1 ) //=1 scheint zu blocken, dann muss g_uStopTime aktiv sein und hier drüber erst eine Uhrzeit reinsetzen.
     {
         if( (uTime - g_uBlockCommands) > COMMAND_BLOCK_DELAY ) //jede 1 sekunden wäre standard nach config
         {
             g_uBlockCommands = 0;
-#if FEATURE_OUTPUT_FINISHED_OBJECT
             // output the object
-            outputObject(false);
-#else
-            // disable all steppers
-            g_uStartOfIdle = HAL::timeInMilliseconds();
-            Printer::disableAllSteppersNow();
-
-#if FAN_PIN>-1 && FEATURE_FAN_CONTROL
-            // disable the fan
-            Commands::setFanSpeed(0,false);
-#endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
-
-#endif // FEATURE_OUTPUT_FINISHED_OBJECT
+            outputObject(false); //in g_uBlockCommands > 1
         }
     }
     
@@ -6794,7 +6788,6 @@ void loopRF( void ) //wird so aufgerufen, dass es ein ~100ms takt sein sollte.
 
 } // loopRF
 
-#if FEATURE_OUTPUT_FINISHED_OBJECT
 void outputObject( bool showerrors )
 {
     char    unlock = !uid.locked;
@@ -6818,7 +6811,7 @@ void outputObject( bool showerrors )
 
 #if FAN_PIN>-1 && FEATURE_FAN_CONTROL
     // disable the fan
-    Commands::setFanSpeed(0,false);
+    Commands::setFanSpeed(0);
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
 #if FEATURE_MILLING_MODE
@@ -6833,7 +6826,7 @@ void outputObject( bool showerrors )
 #else
     GCode::executeFString(Com::tOutputObjectPrint);
 #endif // FEATURE_MILLING_MODE
-    Commands::waitUntilEndOfAllMoves();
+    Commands::waitUntilEndOfAllMoves(); //output object
 
     // disable all steppers
     Printer::disableAllSteppersNow();
@@ -6846,8 +6839,6 @@ void outputObject( bool showerrors )
     g_uStartOfIdle = HAL::timeInMilliseconds();
 
 } // outputObject
-#endif // FEATURE_OUTPUT_FINISHED_OBJECT
-
 
 #if FEATURE_PARK
 void parkPrinter( void )
@@ -8465,7 +8456,7 @@ void processCommand( GCode* pCommand )
                 //tell menu that we are now in pause mode
                 Printer::setMenuMode( MENU_MODE_PAUSED, true );
                 //stop filling up MOVE_CACHE any further, process pending moves 
-                Commands::waitUntilEndOfAllMoves();
+                Commands::waitUntilEndOfAllMoves(); //FEATURE_PAUSE_PRINTING
                 //say "Pause" when reaching TASK_PAUSE_PRINT in MOVE_CACHE:
                 UI_STATUS_UPD( UI_TEXT_PAUSED ); //override this with "M3117 TEXT" if needed!
                 uid.refreshPage();
@@ -8601,13 +8592,11 @@ void processCommand( GCode* pCommand )
             }
 #endif // FEATURE_EMERGENCY_STOP_ALL
 
-#if FEATURE_OUTPUT_FINISHED_OBJECT
             case 3079: // M3079 - output the printed object
             {
-                outputObject();
+                outputObject(); //als Gcode direkt
                 break;
             }
-#endif // FEATURE_OUTPUT_FINISHED_OBJECT
 
 #if FEATURE_PARK
             case 3080: // M3080 - park the printer
@@ -8937,12 +8926,7 @@ void processCommand( GCode* pCommand )
                     {
                         // allow to overwrite the current string again
                         uid.unlock();
-                        if( Printer::debugInfo() )
-                        {
-                            Com::printFLN( PSTR( "M3117: unlock" ) );
-                        }
-
-                        g_uStartOfIdle = HAL::timeInMilliseconds();
+                        Com::printFLN( PSTR( "M3117: unlock" ) );
                     }
                 }
                 break;
@@ -9011,7 +8995,7 @@ void processCommand( GCode* pCommand )
             case 3130: // M3130 - start/stop the search of the z-origin
             {
                 startFindZOrigin();
-                Commands::waitUntilEndOfAllMoves(); //might prevent stop
+                Commands::waitUntilEndOfAllMoves(); //find z origin, might prevent stop
                 break;
             }
 #endif // FEATURE_FIND_Z_ORIGIN
@@ -10884,7 +10868,7 @@ void processCommand( GCode* pCommand )
 #if FEATURE_STARTLINE
             case 3912:
             {
-                Commands::waitUntilEndOfAllMoves();
+                Commands::waitUntilEndOfAllMoves(); //feature startline
                 if( Printer::areAxisHomed() && Printer::doHeatBedZCompensation ){
 
                     Com::printFLN( PSTR( "Auto-Startmade" ) );
@@ -10939,7 +10923,7 @@ void processCommand( GCode* pCommand )
                     //M82:
                     Printer::relativeExtruderCoordinateMode = false;
                     //G92 E0:
-                    Printer::queuePositionCurrentSteps[E_AXIS] = Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] = 0;
+                    Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] = 0;
                     
                     const float spacerX = 10.0f;
                     
@@ -10951,8 +10935,6 @@ void processCommand( GCode* pCommand )
                         if(y < 0.0f) y = 0.0f;
                     }
                     float e =  0.0f;
-
-                    g_nDrawStartLineStatus = 1; //mache die funktion abbrechbar.
 
                     Printer::moveToReal(x, y, AUTOADJUST_STARTMADEN_AUSSCHLUSS, IGNORE_COORDINATE, RMath::min(Printer::homingFeedrate[X_AXIS], Printer::homingFeedrate[Y_AXIS]) );
                     
@@ -10975,21 +10957,20 @@ void processCommand( GCode* pCommand )
                                                  y_0 + (y - y_0)*i,
                                                  IGNORE_COORDINATE,
                                                  e_0 + (e - e_0)*i, lineFeedrate);
-                            if(!g_nDrawStartLineStatus) break; //mache die funktion abbrechbar.
-                        } 
+                            if(g_uBlockCommands) break; //mache die funktion abbrechbar.
+                        }
+                        if(g_uBlockCommands) break; //mache die funktion abbrechbar.
                         y += 2.0f;
-                        if(!g_nDrawStartLineStatus) break; //mache die funktion abbrechbar.
                         Printer::moveToReal(IGNORE_COORDINATE, y, IGNORE_COORDINATE, IGNORE_COORDINATE, Printer::homingFeedrate[Y_AXIS] );
                     }
-                    Commands::waitUntilEndOfAllMoves();
+                    Commands::waitUntilEndOfAllMoves(); //feature startline
                     g_nDigitFlowCompensation_Fmin = save_g_nDigitFlowCompensation_Fmin;
                     g_nDigitFlowCompensation_Fmax = save_g_nDigitFlowCompensation_Fmax;
                     g_nDigitFlowCompensation_speed_intense = save_g_nDigitFlowCompensation_speed_intense;
                     g_nDigitFlowCompensation_intense = save_g_nDigitFlowCompensation_intense;
-                    Printer::queuePositionCurrentSteps[E_AXIS] = Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] = 0;
+                    Printer::queuePositionTargetSteps[E_AXIS] = Printer::queuePositionLastSteps[E_AXIS] = 0;
                     Printer::relativeExtruderCoordinateMode = save_relativeExtruderCoordinateMode;
                     Printer::updateCurrentPosition();
-                    g_nDrawStartLineStatus = 0; //mache die funktion abbrechbar.
                 }else{
                     Com::printFLN( PSTR( "M3912 error missing homing or zCMP" ) );
                 }
@@ -11002,7 +10983,7 @@ void processCommand( GCode* pCommand )
                 /* Eigentlich kann man das mit jedem Extruder machen, aber ich lasse das nur für T1 zu, weil ich nur das testen kann. Der Rechte Extruder kann damit absinken, wenn das Filament ihn runterdrückt. Der Linke bleibt in jedem Fall gleich hoch auf der Höhe des Homings! */
                 if ( pCommand->hasZ() && (pCommand->Z <= 0 && pCommand->Z >= -2.0f) ){
                     if(Printer::debugDryrun()) break;
-                    Commands::waitUntilEndOfAllMoves();
+                    Commands::waitUntilEndOfAllMoves(); //M3919 tipdown
                     
                     Extruder *actExtruder = Extruder::current;
                     if(pCommand->hasT() && pCommand->T < NUM_EXTRUDER) actExtruder = &extruder[pCommand->T]; //unter umständen ist actExtruder was anderes wie Extruder::current!
@@ -11402,13 +11383,11 @@ extern void processButton( int nAction )
         }
 #endif // FEATURE_ALIGN_EXTRUDERS
 
-#if FEATURE_OUTPUT_FINISHED_OBJECT
         case UI_ACTION_RF_OUTPUT_OBJECT:
         {
-            outputObject();
+            outputObject(); //als UI_ACTION_RF_OUTPUT_OBJECT
             break;
         }
-#endif // FEATURE_OUTPUT_FINISHED_OBJECT
 
 #if FEATURE_FIND_Z_ORIGIN
         case UI_ACTION_RF_FIND_Z_ORIGIN:
@@ -12828,49 +12807,29 @@ void updateRGBLightStatus( void )
     {
         // operating mode print
 #if NUM_EXTRUDER >= 1
-        if( extruder[0].tempControl.targetTemperatureC > EXTRUDER_MIN_TEMP )
+        for(uint8_t i=0; i<NUM_EXTRUDER; i++)
         {
-            if( fabs( extruder[0].tempControl.targetTemperatureC - extruder[0].tempControl.currentTemperatureC ) < RGB_LIGHT_TEMP_TOLERANCE )
+            if( extruder[i].tempControl.targetTemperatureC > MAX_ROOM_TEMPERATURE )
             {
-                // we have reached the target temperature
-                newStatus = RGB_STATUS_PRINTING;
-            }
-            else if( extruder[0].tempControl.targetTemperatureC > extruder[0].tempControl.currentTemperatureC )
-            {
-                // we are still heating
-                newStatus = RGB_STATUS_HEATING;
-            }
-            else
-            {
-                // we end up here in case the target temperature is below the current temperature (this happens typically when the target temperature is reduced after the first layer)
-            }
-        }
-#endif // NUM_EXTRUDER >= 1
-
-#if NUM_EXTRUDER == 2
-        if( extruder[1].tempControl.targetTemperatureC > EXTRUDER_MIN_TEMP )
-        {
-            if( fabs( extruder[1].tempControl.targetTemperatureC - extruder[1].tempControl.currentTemperatureC ) < RGB_LIGHT_TEMP_TOLERANCE )
-            {
-                if( newStatus == RGB_STATUS_IDLE )
+                if( fabs( extruder[i].tempControl.targetTemperatureC - extruder[i].tempControl.currentTemperatureC ) < RGB_LIGHT_TEMP_TOLERANCE )
                 {
                     // we have reached the target temperature
                     newStatus = RGB_STATUS_PRINTING;
                 }
-            }
-            else if( extruder[1].tempControl.targetTemperatureC > extruder[1].tempControl.currentTemperatureC )
-            {
-                // we are still heating
-                newStatus = RGB_STATUS_HEATING;
-            }
-            else
-            {
-                // we end up here in case the target temperature is below the current temperature (this happens typically when the target temperature is reduced after the first layer)
+                else if( extruder[i].tempControl.targetTemperatureC > extruder[i].tempControl.currentTemperatureC )
+                {
+                    // we are still heating
+                    newStatus = RGB_STATUS_HEATING;
+                }
+                else
+                {
+                    // we end up here in case the target temperature is below the current temperature (this happens typically when the target temperature is reduced after the first layer)
+                }
             }
         }
-#endif // NUM_EXTRUDER == 2
+#endif // NUM_EXTRUDER >= 1
 
-        if( heatedBedController.targetTemperatureC > HEATED_BED_MIN_TEMP )
+        if( heatedBedController.targetTemperatureC > MAX_ROOM_TEMPERATURE )
         {
             if( fabs( heatedBedController.targetTemperatureC - heatedBedController.currentTemperatureC ) < RGB_LIGHT_TEMP_TOLERANCE )
             {
@@ -12892,26 +12851,18 @@ void updateRGBLightStatus( void )
         }
 
 #if NUM_EXTRUDER >= 1
-        if( (extruder[0].tempControl.currentTemperatureC - extruder[0].tempControl.targetTemperatureC) > COOLDOWN_THRESHOLD )
+        for(uint8_t i=0; i<NUM_EXTRUDER; i++)
         {
-            // we shall cool down
-            if( newStatus == RGB_STATUS_IDLE )
+            if( (extruder[i].tempControl.currentTemperatureC - extruder[i].tempControl.targetTemperatureC) > COOLDOWN_THRESHOLD )
             {
-                newStatus = RGB_STATUS_COOLING;
+                // we shall cool down
+                if( newStatus == RGB_STATUS_IDLE )
+                {
+                    newStatus = RGB_STATUS_COOLING;
+                }
             }
         }
 #endif // NUM_EXTRUDER >= 1
-
-#if NUM_EXTRUDER == 2
-        if( (extruder[1].tempControl.currentTemperatureC - extruder[1].tempControl.targetTemperatureC) > COOLDOWN_THRESHOLD )
-        {
-            // we shall cool down
-            if( newStatus == RGB_STATUS_IDLE )
-            {
-                newStatus = RGB_STATUS_COOLING;
-            }
-        }
-#endif // NUM_EXTRUDER == 2
 
         if( (heatedBedController.currentTemperatureC - heatedBedController.targetTemperatureC) > COOLDOWN_THRESHOLD )
         {

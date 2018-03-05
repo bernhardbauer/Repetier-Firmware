@@ -49,7 +49,11 @@
 #endif // FEATURE_MILLING_MODE
 
 /** \brief Number of extruders */
-#define NUM_EXTRUDER                        2
+#define NUM_EXTRUDER                        2                                                   // 1 = Single, 2 = Dual
+
+#if NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+ #error This Firmware supports up to 2 Extruders. You might have to reimplement the 3+ code or "request it" if you really got hands on a RFx000 board with 3+ Extruders.
+#endif // FEATURE_DITTO_PRINTING && NUM_EXTRUDER!=2
 
 /** \brief Allows to use the 230V output */
 #define FEATURE_230V_OUTPUT                 0                                                   // the RF1000 does not support the 230 V output
@@ -149,9 +153,6 @@ Overridden if EEPROM activated.*/
 
 /** \brief for each extruder, fan will stay on until extruder temperature is below this value */
 #define EXTRUDER_FAN_COOL_TEMP              50
-
-/** \brief Minimal temperature which can be set for the extruder */
-#define EXTRUDER_MIN_TEMP                   40
 
 /** \brief Maximal temperature which can be set for the extruder */
 #define EXTRUDER_MAX_TEMP                   275
@@ -542,9 +543,6 @@ The codes are only executed for multiple extruder when changing the extruder. */
 /** \brief Set true if you have a heated bed conected to your board, false if not */
 #define HAVE_HEATED_BED                     true
 
-/** \brief Minimal temperature which can be set for the heating bed */
-#define HEATED_BED_MIN_TEMP                 40
-
 /** \brief Maximal temperature which can be set for the heating bed */
 #define HEATED_BED_MAX_TEMP                 110
 
@@ -602,7 +600,7 @@ A good start is 30 lower then the optimal value. You need to leave room for cool
 #define BED_SENSOR_INDEX                    HEATED_BED_SENSOR_PIN
 #define BED_ANALOG_CHANNEL
 
-#endif // HAVE_HEATED_BED==true && HEATED_BED_SENSOR_TYPE<101   
+#endif // HAVE_HEATED_BED==true && HEATED_BED_SENSOR_TYPE<101
 
 #if FEATURE_HEAT_BED_TEMP_COMPENSATION
 
@@ -629,7 +627,7 @@ Z-EndStop button crash RF1000: ~ >0.8f
 Z-EndStop optical button crash RF2000: ~ >1.3f
 Crash with Einhausung/Plexiglas backside RFx000: ~ >5.0 .. 6.0f
 Crash with backside metal RFx000: ~ >10.0..12.0f
-Overflow in Z-Matrix: >12.7f 
+Overflow in Z-Matrix: >12.7f
 */
 #define Z_ENDSTOP_DRIVE_OVER                 0.8f                              //mm
 
@@ -812,9 +810,9 @@ This defines the full power duration before returning to set value. Time is in m
 /** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
     The axis order in all axis related arrays is X, Y, Z
      Overridden if EEPROM activated. */
-#define MAX_FEEDRATE_X                      500
-#define MAX_FEEDRATE_Y                      500
-#define MAX_FEEDRATE_Z                      50
+#define MAX_FEEDRATE_X                      200
+#define MAX_FEEDRATE_Y                      200
+#define MAX_FEEDRATE_Z                      12
 
 /** \brief Home position speed in mm/s. Overridden if EEPROM activated. */
 #define HOMING_FEEDRATE_X_PRINT             80
@@ -896,7 +894,7 @@ if you are printing many very short segments at high speed. Higher delays here a
 // ##   Acceleration settings
 // ##########################################################################################
 
-// RF2000: Tests haben gezeigt, dass x-y-acceleration unter 2000 oder unter 1500 das Teil ziemlich gut aussieht. 
+// RF2000: Tests haben gezeigt, dass x-y-acceleration unter 2000 oder unter 1500 das Teil ziemlich gut aussieht.
 
 /** \brief X, Y, Z max acceleration in mm/s^2 for printing moves or retracts. Make sure your printer can go that high!
  Overridden if EEPROM activated. */
@@ -1158,7 +1156,7 @@ Above this value the z compensation will distribute the roughness of the surface
 // ##   configuration of the pause functionality
 // ##########################################################################################
 
-#if FEATURE_PAUSE_PRINTING 
+#if FEATURE_PAUSE_PRINTING
 
 /** \brief Configuration of the pause steps */
 //Nibbels: 29122017 dont know what happens if pause hits max endstop etc. ... might get shifted coordinates!

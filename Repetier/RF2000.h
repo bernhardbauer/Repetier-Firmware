@@ -49,7 +49,11 @@
 #endif // FEATURE_MILLING_MODE
 
 /** \brief Number of extruders */
-#define NUM_EXTRUDER                        2
+#define NUM_EXTRUDER                        2                                                   // 1 = Single, 2 = Dual
+
+#if NUM_EXTRUDER > 2 || NUM_EXTRUDER < 0
+ #error This Firmware supports up to 2 Extruders. You might have to reimplement the 3+ code or "request it" if you really got hands on a RFx000 board with 3+ Extruders.
+#endif // FEATURE_DITTO_PRINTING && NUM_EXTRUDER!=2
 
 /** \brief Allows to use the 230V output */
 #define FEATURE_230V_OUTPUT                 1                                                   // 1 = on, 0 = off
@@ -134,9 +138,6 @@ Overridden if EEPROM activated.*/
 
 /** \brief for each extruder, fan will stay on until extruder temperature is below this value */
 #define EXTRUDER_FAN_COOL_TEMP              50
-
-/** \brief Minimal temperature which can be set for the extruder */
-#define EXTRUDER_MIN_TEMP                   40
 
 /** \brief Maximal temperature which can be set for the extruder */
 #define EXTRUDER_MAX_TEMP                   275
@@ -535,9 +536,6 @@ The codes are only executed for multiple extruder when changing the extruder. */
 /** \brief Set true if you have a heated bed conected to your board, false if not */
 #define HAVE_HEATED_BED                     true
 
-/** \brief Minimal temperature which can be set for the heating bed */
-#define HEATED_BED_MIN_TEMP                 40
-
 /** \brief Maximal temperature which can be set for the heating bed */
 #define HEATED_BED_MAX_TEMP                 180
 
@@ -820,9 +818,9 @@ This defines the full power duration before returning to set value. Time is in m
 /** \brief Maximum feedrate, the system allows. Higher feedrates are reduced to these values.
     The axis order in all axis related arrays is X, Y, Z
      Overridden if EEPROM activated. */
-#define MAX_FEEDRATE_X                      500
-#define MAX_FEEDRATE_Y                      500
-#define MAX_FEEDRATE_Z                      50
+#define MAX_FEEDRATE_X                      200
+#define MAX_FEEDRATE_Y                      200
+#define MAX_FEEDRATE_Z                      12
 
 /** \brief Home position speed in mm/s. Overridden if EEPROM activated. */
 #define HOMING_FEEDRATE_X_PRINT             80
