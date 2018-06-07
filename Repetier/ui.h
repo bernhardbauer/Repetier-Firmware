@@ -40,7 +40,6 @@
 #define UI_ACTION_BACK                      1000
 #define UI_ACTION_OK                        1001
 #define UI_ACTION_MENU_UP                   1002
-#define UI_ACTION_TOP_MENU                  1003
 #define UI_ACTION_EMERGENCY_STOP            1004
 #define UI_ACTION_XPOSITION                 1005
 #define UI_ACTION_YPOSITION                 1006
@@ -48,7 +47,7 @@
 #define UI_ACTION_EPOSITION                 1008
 #define UI_ACTION_BED_TEMP                  1009
 #define UI_ACTION_EXTRUDER_TEMP             1010
-#define UI_ACTION_SD_DELETE                 1012
+//#define UI_ACTION_SD_DELETE                 1012
 #define UI_ACTION_SD_PRINT                  1013
 #define UI_ACTION_SD_PAUSE                  1014
 #define UI_ACTION_SD_CONTINUE               1015
@@ -113,22 +112,25 @@
 #define UI_ACTION_SET_E_ORIGIN              1091
 #define UI_ACTION_EXTRUDER_RELATIVE         1092
 #define UI_ACTION_SELECT_EXTRUDER0          1093
-//#define UI_ACTION_ADVANCE_L                 1094
+
 #define UI_ACTION_PREHEAT_ABS               1095
 #define UI_ACTION_FLOWRATE_MULTIPLY         1096
 #define UI_ACTION_EXTR_WAIT_RETRACT_TEMP    1100
 #define UI_ACTION_EXTR_WAIT_RETRACT_UNITS   1101
-#define UI_ACTION_WRITE_DEBUG               1105
+
 #define UI_ACTION_FANSPEED                  1106
 #define UI_ACTION_LIGHTS_ONOFF              1107
-//#define UI_ACTION_SD_STOP                   1108
+
 #define UI_ACTION_STOP_ACK                  1109
-//#define UI_ACTION_ZPOSITION_NOTEST          1110
-//#define UI_ACTION_ZPOSITION_FAST_NOTEST     1111
-#define UI_ACTION_MAX_INACTIVE              1113
-#define UI_ACTION_BEEPER                    1114
-#define UI_ACTION_UNMOUNT_FILAMENT          1115
-#define UI_ACTION_MOUNT_FILAMENT            1116
+
+#define UI_ACTION_UNMOUNT_FILAMENT_SOFT     1110
+#define UI_ACTION_UNMOUNT_FILAMENT_HARD     1111
+#define UI_ACTION_MOUNT_FILAMENT_SOFT       1112
+#define UI_ACTION_MOUNT_FILAMENT_HARD       1113
+
+#define UI_ACTION_MAX_INACTIVE              1114
+#define UI_ACTION_BEEPER                    1115
+
 #define UI_ACTION_OPERATING_MODE            1117
 #define UI_ACTION_SET_XY_ORIGIN             1118
 #define UI_ACTION_Z_ENDSTOP_TYPE            1119
@@ -159,7 +161,6 @@
 
 #define UI_ACTION_CHOOSE_CLASSICPID         1674 //pid kram
 #define UI_ACTION_CHOOSE_LESSERINTEGRAL     1675 //pid kram
-#define UI_ACTION_CHOOSE_SOME               1676 //pid kram
 #define UI_ACTION_CHOOSE_NO                 1677 //pid kram
 #define UI_ACTION_CHOOSE_TYREUS_LYBEN       1701 //pid kram
 
@@ -199,6 +200,22 @@
 //FEATURE_ALIGN_EXTRUDERS
 #define UI_ACTION_ALIGN_EXTRUDERS           1706
 
+#define UI_ACTION_MICROSTEPS_XY             1707
+#define UI_ACTION_MICROSTEPS_Z              1708
+#define UI_ACTION_MICROSTEPS_E              1709
+
+#define UI_ACTION_SENSEOFFSET_DIGITS        1710
+#define UI_ACTION_SENSEOFFSET_MAX           1711
+#define UI_ACTION_SENSEOFFSET_AUTOSTART     1712
+
+#define UI_ACTION_WOBBLE_FIX_PHASEXY        1713
+#define UI_ACTION_WOBBLE_FIX_PHASEZ         1714
+#define UI_ACTION_WOBBLE_FIX_AMPX           1715
+#define UI_ACTION_WOBBLE_FIX_AMPY1          1716
+#define UI_ACTION_WOBBLE_FIX_AMPY2          1717
+#define UI_ACTION_WOBBLE_FIX_AMPZ           1718
+
+
 #define UI_ACTION_FET1_OUTPUT               2001
 #define UI_ACTION_FET2_OUTPUT               2002
 
@@ -209,7 +226,6 @@
 #define UI_ACTION_MENU_XPOSFAST             4003
 #define UI_ACTION_MENU_YPOSFAST             4004
 #define UI_ACTION_MENU_ZPOSFAST             4005
-#define UI_ACTION_MENU_SDCARD               4006
 #define UI_ACTION_MENU_QUICKSETTINGS        4007
 #define UI_ACTION_MENU_EXTRUDER             4008
 #define UI_ACTION_MENU_POSITIONS            4009
@@ -229,6 +245,12 @@
 // Load basic language definition to make sure all values are defined
 #include "uilang.h"
 
+//mtype usw.
+#define UI_MENU_TYPE_INFO 0
+#define UI_MENU_TYPE_FILE_SELECTOR 1
+#define UI_MENU_TYPE_SUBMENU 2
+#define UI_MENU_TYPE_MODIFICATION_MENU 3
+#define UI_MENU_TYPE_WIZARD 5
 
 typedef struct
 {
@@ -268,7 +290,6 @@ extern bool     g_nAutoReturnMessage;
 extern  char    g_nYesNo;
 extern volatile char    g_nContinueButtonPressed;
 extern  char    g_nServiceRequest;
-extern  char    g_nPrinterReady;
 
 // Key codes
 #define UI_KEYS_INIT_CLICKENCODER_LOW(pinA,pinB)        SET_INPUT(pinA);SET_INPUT(pinB); PULLUP(pinA,HIGH);PULLUP(pinB,HIGH);
@@ -416,9 +437,9 @@ public:
     float               lastNextAccumul;            // Accumulated value
     unsigned int        outputMask;                 // Output mask for backlight, leds etc.
     int                 repeatDuration;             // Time beween to actions if autorepeat is enabled
-    int8_t              oldMenuLevel;
     uint8_t             encoderStartScreen;
     char                statusMsg[MAX_COLS + 1];
+    char                printCols[MAX_COLS + 1];
     int8_t              encoderPos;
     int8_t              encoderLast;
     PGM_P               statusText;
@@ -434,7 +455,6 @@ public:
     UIDisplay();
     void createChar(uint8_t location,const uint8_t charmap[]);
     void initialize(); // Initialize display and keys
-    void waitForKey();
     void printRow(uint8_t r,char *txt,char *txt2,uint8_t changeAtCol); // Print row on display
     void printRowP(uint8_t r,PGM_P txt);
     void parse(char *txt,bool ram); /// Parse output and write to printCols;
@@ -470,6 +490,7 @@ public:
 
     void lock();
     void unlock();
+    void exitmenu();
 
 };
 
@@ -531,11 +552,6 @@ void ui_check_keys(int &action)
 #endif // FEATURE_EXTENDED_BUTTONS
 
 } // ui_check_keys
-
-inline void ui_check_slow_encoder() {}
-void ui_check_slow_keys(int &action) {
-    (void)action;
-}
 #endif // UI_MAIN
 #endif // MOTHERBOARD == DEVICE_TYPE_RF1000
 
@@ -591,11 +607,6 @@ void ui_check_keys(int &action)
 #endif // FEATURE_EXTENDED_BUTTONS
 
 } // ui_check_keys
-
-inline void ui_check_slow_encoder() {}
-void ui_check_slow_keys(int &action) {
-    (void)action;
-}
 #endif // UI_MAIN
 #endif // MOTHERBOARD == DEVICE_TYPE_RF2000 || MOTHERBOARD == DEVICE_TYPE_RF2000_V2
 

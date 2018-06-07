@@ -28,7 +28,8 @@
 extern bool     reportTempsensorError(); ///< Report defect sensors
 extern uint8_t  manageMonitor;
 
-#define TEMPERATURE_CONTROLLER_FLAG_ALARM 1
+#define TEMPERATURE_CONTROLLER_FLAG_ALARM  1
+#define TEMPERATURE_CONTROLLER_FLAG_DEFECT 2
 /** TemperatureController manages one heater-temperature sensore loop. You can have up to
 4 loops allowing pid for up to 3 extruder and the heated bed.
 
@@ -40,7 +41,6 @@ public:
     uint8_t     sensorType;             ///< Type of temperature sensor.
     uint8_t     sensorPin;              ///< Pin to read extruder temperature.
     int16_t     currentTemperature;     ///< Currenttemperature value read from sensor.
-    int16_t     targetTemperature;      ///< Target temperature value in units of sensor.
     float       currentTemperatureC;    ///< Current temperature in degC.
     float       targetTemperatureC;     ///< Target temperature in degC.
 
@@ -69,6 +69,8 @@ public:
     void updateTempControlVars();
     inline bool isAlarm() {return flags & TEMPERATURE_CONTROLLER_FLAG_ALARM;}
     inline void setAlarm(bool on) {if(on) flags |= TEMPERATURE_CONTROLLER_FLAG_ALARM; else flags &= ~TEMPERATURE_CONTROLLER_FLAG_ALARM;}
+    inline bool isDefect() {return flags & TEMPERATURE_CONTROLLER_FLAG_DEFECT;}
+    inline void setDefect(bool on) {if(on) flags |= TEMPERATURE_CONTROLLER_FLAG_DEFECT; else flags &= ~TEMPERATURE_CONTROLLER_FLAG_DEFECT;}
     void waitForTargetTemperature(uint8_t plus_temp_tolerance = 0);
     void autotunePID(float temp, uint8_t controllerId, int maxCycles, bool storeResult, int method);
 }; // TemperatureController

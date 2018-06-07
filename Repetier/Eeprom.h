@@ -143,7 +143,25 @@ have problems with other modules using the eeprom */
 #define EPR_RF_ZERO_DIGIT_STATE           1937 //[1byte]
 #define EPR_RF_DIGIT_CMP_STATE            1938 //[1byte]
 
-#define EPR_X_LENGTH_MILLING              1939 //[4byte float x-axis length for milling / switching]
+#define EPR_X_LENGTH_MILLING              1939 //[+1940+1941+1942 4byte float x-axis length for milling / switching]
+
+#define EPR_RF_MICRO_STEPS_X              1943 //[1byte]
+#define EPR_RF_MICRO_STEPS_Y              1944 //[1byte]
+#define EPR_RF_MICRO_STEPS_Z              1945 //[1byte]
+#define EPR_RF_MICRO_STEPS_E0             1946 //[1byte]
+#define EPR_RF_MICRO_STEPS_E1             1947 //[1byte]
+#define EPR_RF_MICRO_STEPS_USED           1948 //[1byte]
+
+#define EPR_ZSCAN_START_MM                1949 //[+1950+1951+1952 4byte float]
+
+#define EPR_RF_MOD_SENSEOFFSET_AUTOSTART  1953 //[1byte]
+
+#define EPR_RF_MOD_WOBBLE_FIX_PHASEXY     1954 //[1byte]
+#define EPR_RF_MOD_WOBBLE_FIX_AMPX        1955 //[+1956 2byte short]
+#define EPR_RF_MOD_WOBBLE_FIX_AMPY1       1957 //[+1958 2byte short]
+#define EPR_RF_MOD_WOBBLE_FIX_AMPY2       1959 //[+1960 2byte short]
+
+
 
 //Nibbels: Computechecksum geht bis 2047
 

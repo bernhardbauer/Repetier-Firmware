@@ -29,15 +29,15 @@
 
 
 #if MOTHERBOARD == DEVICE_TYPE_RF1000
-#include "RF1000.h"
+    #include "RF1000.h"
 #endif // MOTHERBOARD == DEVICE_TYPE_RF1000
 
 #if MOTHERBOARD == DEVICE_TYPE_RF2000
-#include "RF2000.h"
+    #include "RF2000.h"
 #endif // MOTHERBOARD == DEVICE_TYPE_RF2000
 
 #if MOTHERBOARD == DEVICE_TYPE_RF2000_V2
-#include "RF2000V2.h"
+    #include "RF2000V2.h"
 #endif // MOTHERBOARD == DEVICE_TYPE_RF2000_V2
  
 #include "pins.h"
@@ -54,7 +54,7 @@ inline void memcopy2(void *dest,void *source) {
 inline void memcopy4(void *dest,void *source) {
     *((int32_t*)dest) = *((int32_t*)source);
 }
-#include "SdFat.h"
+#include "src/SdFat/SdFat.h"
 #endif // SDSUPPORT
 
 #undef min
@@ -130,6 +130,13 @@ extern volatile uint8   osAnalogInputPos; // Current sampling position
 extern volatile uint    osAnalogInputValues[ANALOG_INPUTS];
 extern uint8_t          pwm_pos[NUM_EXTRUDER+3]; // 0-NUM_EXTRUDER = Heater 0-NUM_EXTRUDER of extruder, NUM_EXTRUDER = Heated bed, NUM_EXTRUDER+1 Board fan, NUM_EXTRUDER+2 = Fan
 
+#if FEATURE_DEBUG_MOVE_CACHE_TIMING
+extern float            low_ticks_per_move;
+extern uint32_t         move_cache_stats[MOVE_CACHE_SIZE];
+extern uint32_t         move_cache_stats_count;
+extern uint32_t         move_cache_stats_count_limited;
+#endif //FEATURE_DEBUG_MOVE_CACHE_TIMING
+
 #if USE_ADVANCE
 #ifdef ENABLE_QUADRATIC_ADVANCE
 extern int              maxadv;
@@ -153,17 +160,13 @@ extern millis_t previousMillisCmd;
 extern millis_t maxInactiveTime;
 extern millis_t stepperInactiveTime;
 
-extern void motorCurrentControlInit();
+extern void drv8711Init();
 
 #include "Printer.h"
 #include "motion.h"
 
 
 extern long baudrate;
-#if OS_ANALOG_INPUTS>0
-// Get last result for pin x
-extern volatile uint osAnalogInputValues[OS_ANALOG_INPUTS];
-#endif // OS_ANALOG_INPUTS>0
 
 #include "HAL.h"
 
@@ -175,45 +178,44 @@ extern volatile uint8_t     execute10msPeriodical;
 extern uint8_t fanKickstart;
 #endif // FAN_PIN>-1 && FEATURE_FAN_CONTROL
 
-#if SDSUPPORT
 extern char                 tempLongFilename[LONG_FILENAME_LENGTH+1];
 extern char                 fullName[LONG_FILENAME_LENGTH*SD_MAX_FOLDER_DEPTH+SD_MAX_FOLDER_DEPTH+1];
-
+#if SDSUPPORT
 #define SHORT_FILENAME_LENGTH 14
-#include "SdFat.h"
+#include "src/SdFat/SdFat.h"
 
 enum LsAction {LS_SerialPrint,LS_Count,LS_GetFilename};
 
 class SDCard
 {
 public:
-    SdFat       fat;
-    SdFile      file;
-    uint32_t    filesize;
-    uint32_t    sdpos;
-    char*       shortname;  // Pointer to start of filename itself
-    char*       pathend;    // File to char where pathname in fullname ends
-    bool        sdmode;     // true if we are printing from sd card
-    bool        sdactive;
-    bool        savetosd;
-    SdBaseFile  parentFound;
+    SdFat fat;
+    SdFile file;
+    uint32_t filesize;
+    uint32_t sdpos;
+    char *shortname; // Pointer to start of filename itself
+    char *pathend; // File to char where pathname in fullname ends
+    uint8_t sdmode;  // 1 if we are printing from sd card, 2 = stop accepting new commands
+    bool sdactive;
+    bool savetosd;
 
     SDCard();
     void initsd();
     void writeCommand(GCode *code);
-    bool selectFile(char *filename,bool silent=false);
+    bool selectFileByName(const char *filename,bool silent=false);
+    bool selectFileByPos(uint16_t filePos, bool silent=false);
     void mount();
     void unmount();
     void startPrint();
-
+    void pausePrint(bool intern = false);
+    void continuePrint(bool intern = false);
+    void stopPrint();
     inline void setIndex(uint32_t  newpos)
     {
         if(!sdactive) return;
         sdpos = newpos;
         file.seekSet(sdpos);
-
-    } // setIndex
-
+    }
     void printStatus();
     void ls();
     void startWrite(char *filename);
@@ -223,15 +225,12 @@ public:
     void makeDirectory(char *filename);
     bool showFilename(const uint8_t *name);
     void automount();
-
-#ifdef GLENN_DEBUG
-    void writeToFile();
-#endif // GLENN_DEBUG
-
 private:
     uint8_t lsRecursive(SdBaseFile *parent,uint8_t level,char *findFilename);
-
+// SdFile *getDirectory(char* name);
 };
+
+extern SDCard sd;
 
 extern SDCard sd;
 #endif // SDSUPPORT
@@ -239,10 +238,6 @@ extern SDCard sd;
 extern volatile int waitRelax; // Delay filament relax at the end of print, could be a simple timeout
 
 extern void updateStepsParameter(PrintLine *p);
-
-#ifdef DEBUG_PRINT
-extern int                  debugWaitLoop;
-#endif // DEBUG_PRINT
 
 #define STR(s)      #s
 #define XSTR(s)     STR(s)
